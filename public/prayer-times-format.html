@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prayer Times JSON Format</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #f8fafc;
+            margin: 0;
+            padding: 20px;
+            width: 600px;
+            height: 400px;
+            box-sizing: border-box;
+        }
+        .container {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            height: 100%;
+            position: relative;
+        }
+        .title {
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            color: #1e293b;
+            margin-bottom: 20px;
+        }
+        .json-code {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #475569;
+        }
+        .key {
+            color: #059669;
+            font-weight: bold;
+        }
+        .string {
+            color: #2563eb;
+        }
+        .property {
+            color: #dc2626;
+        }
+        .legend {
+            position: absolute;
+            right: 20px;
+            top: 80px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            font-size: 12px;
+            width: 180px;
+        }
+        .legend-title {
+            font-weight: bold;
+            color: #1e293b;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .legend-item {
+            color: #475569;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="title">Prayer Times JSON Format</div>
+        <div class="json-code">
+            {<br>
+            &nbsp;&nbsp;<span class="key">"fajr"</span>: {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="property">"azan"</span>: <span class="string">"05:30"</span>,<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="property">"iqamah"</span>: <span class="string">"05:45"</span><br>
+            &nbsp;&nbsp;},<br>
+            &nbsp;&nbsp;<span class="key">"dhuhr"</span>: {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="property">"azan"</span>: <span class="string">"12:30"</span>,<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="property">"iqamah"</span>: <span class="string">"12:45"</span><br>
+            &nbsp;&nbsp;},<br>
+            &nbsp;&nbsp;<span class="key">"asr"</span>: {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="property">"azan"</span>: <span class="string">"15:45"</span>,<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="property">"iqamah"</span>: <span class="string">"16:00"</span><br>
+            &nbsp;&nbsp;},<br>
+            &nbsp;&nbsp;<span class="key">"maghrib"</span>: {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="property">"azan"</span>: <span class="string">"18:15"</span>,<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="property">"iqamah"</span>: <span class="string">"18:20"</span><br>
+            &nbsp;&nbsp;},<br>
+            &nbsp;&nbsp;<span class="key">"isha"</span>: {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="property">"azan"</span>: <span class="string">"19:30"</span>,<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="property">"iqamah"</span>: <span class="string">"19:45"</span><br>
+            &nbsp;&nbsp;}<br>
+            }
+        </div>
+        <div class="legend">
+            <div class="legend-title">Time Format Guide</div>
+            <div class="legend-item">• Use 24-hour format</div>
+            <div class="legend-item">• Format: "HH:MM"</div>
+            <div class="legend-item">• Include all 5 prayers</div>
+            <div class="legend-item">• Azan = Call to prayer</div>
+            <div class="legend-item">• Iqamah = Start of prayer</div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,8 @@
+{
+  "name": "community-console-setup",
+  "version": "1.0.0",
+  "description": "Database setup scripts for Community Console",
+  "scripts": {
+    "setup-db": "echo 'Please copy the contents of setup.sql and paste it into your Supabase SQL editor to set up the database.'"
+  }
+}
