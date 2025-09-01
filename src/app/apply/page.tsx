@@ -60,7 +60,7 @@ export default function ApplyPage() {
 
       // Submit application
       const { error } = await supabase
-        .from('organizations_applications')
+        .from('organization_applications')
         .insert({
           organization_name: formData.organizationName,
           organization_type: formData.organizationType === 'other' ? formData.organizationTypeOther : formData.organizationType,

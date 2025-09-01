@@ -14,11 +14,9 @@ export default async function AdminLayout({
     redirect('/signin')
   }
 
-  // Check if user is a platform admin
-  // You can customize this logic based on your needs
-  const isAdmin = user.email?.includes('@jamah.admin') || 
-                  user.email === 'admin@jamah.com' || 
-                  false // Add more admin email conditions here
+  // Only allow admin email from environment variable
+  const adminEmail = process.env.ADMIN_EMAIL
+  const isAdmin = user.email === adminEmail
 
   if (!isAdmin) {
     return (

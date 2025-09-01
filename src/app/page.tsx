@@ -6,23 +6,30 @@ export default async function HomePage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (user) {
-    // Check if user is a platform admin
-    // For now, we'll check if they have a specific email domain or role
-    // You can customize this logic based on your needs
-    const isAdmin = user.email?.includes('@jamah.admin') || false // Customize this
-    
-    if (isAdmin) {
-      redirect('/admin')
-    } else {
-      redirect('/org')
-    }
-  }
+  // Only redirect if user explicitly wants to go to their dashboard
+  // Remove automatic redirect so users can see the home page
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
       <div className="container mx-auto px-4 py-16">
         <div className="max-w-4xl mx-auto text-center">
+          
+          {/* Show user status if signed in */}
+          {user && (
+            <div className="mb-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-blue-800">
+                Welcome back, <strong>{user.email}</strong>!{' '}
+                <Link href="/admin" className="text-blue-600 hover:text-blue-800 underline ml-2">
+                  Go to Dashboard
+                </Link>
+                {' | '}
+                <Link href="/signin" className="text-blue-600 hover:text-blue-800 underline">
+                  Sign Out
+                </Link>
+              </p>
+            </div>
+          )}
+
           <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
             Community Console
           </h1>

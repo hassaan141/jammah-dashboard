@@ -5,25 +5,34 @@ export default async function AdminDashboardPage() {
   const supabase = await createClient()
 
   // Get application statistics
-  const { data: applications } = await supabase
+  const { data: applications, error: appsError } = await supabase
     .from('organization_applications')
-    .select('id, status, created_at')
+    .select('id, application_status, created_at')
 
-  const { data: organizations } = await supabase
+  // Debug logging
+  console.log('Applications data:', applications)
+  console.log('Applications error:', appsError)
+
+  const { data: organizations, error: orgsError } = await supabase
     .from('organizations')
-    .select('id, verified, created_at')
+    .select('id, created_at')
 
-  const pendingApplications = applications?.filter(app => app.status === 'submitted').length || 0
+  console.log('Organizations data:', organizations)
+  console.log('Organizations error:', orgsError)
+
+  const pendingApplications = applications?.filter(app => app.application_status === 'submitted').length || 0
   const totalApplications = applications?.length || 0
-  const verifiedOrganizations = organizations?.filter(org => org.verified).length || 0
+  const verifiedOrganizations = organizations?.length || 0  // All orgs in the table are verified by default
   const totalOrganizations = organizations?.length || 0
 
   // Get recent applications for quick review
-  const { data: recentApplications } = await supabase
+  const { data: recentApplications, error: recentError } = await supabase
     .from('organization_applications')
     .select('*')
-    .order('created_at', { ascending: false })
-    .limit(5)
+
+
+  console.log('Recent applications:', recentApplications)
+  console.log('Recent applications error:', recentError)
 
   return (
     <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
@@ -165,19 +174,19 @@ export default async function AdminDashboardPage() {
                       </div>
                       <div className="ml-4 flex-shrink-0">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          application.status === 'submitted' 
+                          application.application_status === 'submitted' 
                             ? 'bg-yellow-100 text-yellow-800'
-                            : application.status === 'approved'
+                            : application.application_status === 'approved'
                             ? 'bg-green-100 text-green-800'
-                            : application.status === 'rejected'
+                            : application.application_status === 'rejected'
                             ? 'bg-red-100 text-red-800'
                             : 'bg-blue-100 text-blue-800'
                         }`}>
-                          {application.status}
+                          {application.application_status}
                         </span>
                       </div>
                     </div>
-                    {application.status === 'submitted' && (
+                    {application.application_status === 'submitted' && (
                       <div className="mt-3 flex space-x-2">
                         <Link
                           href={`/admin/applications/${application.id}`}

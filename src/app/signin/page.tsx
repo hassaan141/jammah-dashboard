@@ -29,7 +29,12 @@ export default function SignInPage() {
       if (error) {
         setError(error.message)
       } else {
-        router.push('/org')
+        // Check if this is the admin email
+        if (email === 'jamahcommunityapp@gmail.com') {
+          router.push('/admin')
+        } else {
+          router.push('/org')
+        }
       }
     } catch (error) {
       setError('An unexpected error occurred')
@@ -48,7 +53,9 @@ export default function SignInPage() {
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${window.location.origin}/org`
+          emailRedirectTo: email === 'jamahcommunityapp@gmail.com' 
+            ? `${window.location.origin}/admin`
+            : `${window.location.origin}/org`
         }
       })
 
@@ -135,7 +142,7 @@ export default function SignInPage() {
 
           <form onSubmit={mode === 'password' ? handlePasswordSignIn : handleMagicLinkSignIn}>
             <div className="mb-6">
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="email" className="block text-sm font-medium text-black mb-2">
                 Email Address
               </label>
               <input
@@ -144,7 +151,7 @@ export default function SignInPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black placeholder-black"
                 placeholder="your@email.com"
               />
             </div>
@@ -160,7 +167,7 @@ export default function SignInPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black placeholder-black"
                   placeholder="Your password"
                 />
               </div>
