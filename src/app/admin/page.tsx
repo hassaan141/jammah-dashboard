@@ -189,10 +189,10 @@ export default async function AdminDashboardPage() {
                     {application.application_status === 'submitted' && (
                       <div className="mt-3 flex space-x-2">
                         <Link
-                          href={`/admin/applications/${application.id}`}
+                          href={`/admin/applications`}
                           className="text-blue-600 hover:text-blue-800 font-medium text-sm"
                         >
-                          Review →
+                          View in Applications →
                         </Link>
                       </div>
                     )}

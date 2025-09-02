@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
+import StatusDropdown from './StatusDropdown'
 
 export default async function AdminApplicationsPage() {
   const supabase = await createClient()
@@ -54,7 +55,7 @@ export default async function AdminApplicationsPage() {
                       Submitted
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
+                      Phone
                     </th>
                   </tr>
                 </thead>
@@ -82,20 +83,17 @@ export default async function AdminApplicationsPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(application.status)}`}>
-                          {application.status}
-                        </span>
+                        <StatusDropdown 
+                          applicationId={application.id}
+                          currentStatus={application.application_status}
+                          organizationData={application}
+                        />
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {new Date(application.created_at).toLocaleDateString()}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <Link
-                          href={`/admin/applications/${application.id}`}
-                          className="text-blue-600 hover:text-blue-900"
-                        >
-                          Review
-                        </Link>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {application.contact_phone || 'N/A'}
                       </td>
                     </tr>
                   ))}
