@@ -36,8 +36,35 @@ export default function StatusDropdown({ applicationId, currentStatus, organizat
         return
       }
 
-      // If approved, create an organization record
       if (newStatus === 'approved') {
+        let lat = null
+        let lng = null
+        
+        try {
+          const addressString = [
+            organizationData.address,
+            organizationData.city,
+            organizationData.province_state,
+            organizationData.country
+          ].filter(Boolean).join(', ')
+          
+          const apiKey = process.env.NEXT_PUBLIC_OPENROUTE_API
+          if (apiKey && addressString) {
+            const url = `https://api.openrouteservice.org/geocode/search?api_key=${apiKey}&text=${encodeURIComponent(addressString)}`
+            const response = await fetch(url)
+            if (response.ok) {
+              const data = await response.json()
+              if (data?.features?.[0]?.geometry?.coordinates) {
+                const [longitude, latitude] = data.features[0].geometry.coordinates
+                lat = latitude
+                lng = longitude
+              }
+            }
+          }
+        } catch (geoErr) {
+          console.error('Geocode error:', geoErr)
+        }
+
         const { error: orgError } = await supabase
           .from('organizations')
           .insert({
@@ -58,6 +85,8 @@ export default function StatusDropdown({ applicationId, currentStatus, organizat
             is_active: true,
             approved_at: new Date().toISOString(),
             prayer_times_url: organizationData.prayer_times_url,
+            latitude: lat,
+            longitude: lng,
           })
 
         if (orgError) {
