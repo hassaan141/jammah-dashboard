@@ -15,7 +15,7 @@ export default function StatusDropdown({ applicationId, currentStatus, organizat
   const router = useRouter()
 
   const handleStatusChange = async (newStatus: string) => {
-    if (newStatus === currentStatus) return
+    console.log('Status change:', currentStatus, '->', newStatus)
     
     setIsLoading(true)
     
@@ -47,7 +47,7 @@ export default function StatusDropdown({ applicationId, currentStatus, organizat
             organizationData.province_state,
             organizationData.country
           ].filter(Boolean).join(', ')
-          
+                
           const apiKey = process.env.NEXT_PUBLIC_OPENROUTE_API
           if (apiKey && addressString) {
             const url = `https://api.openrouteservice.org/geocode/search?api_key=${apiKey}&text=${encodeURIComponent(addressString)}`
@@ -62,7 +62,6 @@ export default function StatusDropdown({ applicationId, currentStatus, organizat
             }
           }
         } catch (geoErr) {
-          console.error('Geocode error:', geoErr)
         }
 
         const { error: orgError } = await supabase
