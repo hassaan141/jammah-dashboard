@@ -14,6 +14,11 @@ export default async function OrgLayout({
     redirect('/signin')
   }
 
+  // Check if user needs to reset password (for newly approved organizations)
+  if (user.user_metadata?.requires_password_reset) {
+    redirect('/reset-password')
+  }
+
   // Check if user has an approved organization
   const { data: orgAdmin } = await supabase
     .from('organization_admins')
