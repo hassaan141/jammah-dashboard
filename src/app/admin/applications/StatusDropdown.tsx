@@ -22,75 +22,34 @@ export default function StatusDropdown({ applicationId, currentStatus, organizat
     try {
       const supabase = createClient()
       
-      const { error } = await supabase
-        .from('organization_applications')
-        .update({ 
-          application_status: newStatus,
-          updated_at: new Date().toISOString()
+      // For privileged updates (marking approved and promoting profile to org)
+      // call the server-side API which uses the service role key. This keeps
+      // service credentials out of the browser and runs the approval logic
+      // atomically on the server.
+      try {
+        // Get current session token to authenticate the admin call
+        const { data: sessionData } = await supabase.auth.getSession()
+        const token = (sessionData as any)?.session?.access_token
+
+        const resp = await fetch('/api/approve-application', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({ applicationId })
         })
-        .eq('id', applicationId)
 
-      if (error) {
-        console.error('Error updating application:', error)
-        alert('Failed to update application status')
+        const result = await resp.json()
+        if (!resp.ok || !result.success) {
+          console.error('Approval API error:', result)
+          alert('Failed to approve application')
+          return
+        }
+      } catch (err) {
+        console.error('Error calling approval API:', err)
+        alert('Failed to approve application')
         return
-      }
-
-      if (newStatus === 'approved') {
-        let lat = null
-        let lng = null
-        
-        try {
-          const addressString = [
-            organizationData.address,
-            organizationData.city,
-            organizationData.province_state,
-            organizationData.country
-          ].filter(Boolean).join(', ')
-                
-          const apiKey = process.env.NEXT_PUBLIC_OPENROUTE_API
-          if (apiKey && addressString) {
-            const url = `https://api.openrouteservice.org/geocode/search?api_key=${apiKey}&text=${encodeURIComponent(addressString)}`
-            const response = await fetch(url)
-            if (response.ok) {
-              const data = await response.json()
-              if (data?.features?.[0]?.geometry?.coordinates) {
-                const [longitude, latitude] = data.features[0].geometry.coordinates
-                lat = latitude
-                lng = longitude
-              }
-            }
-          }
-        } catch (geoErr) {
-        }
-
-        const { error: orgError } = await supabase
-          .from('organizations')
-          .insert({
-            name: organizationData.organization_name,
-            type: organizationData.organization_type,
-            address: organizationData.address,
-            city: organizationData.city,
-            country: organizationData.country,
-            postal_code: organizationData.postal_code,
-            province_state: organizationData.province_state,
-            contact_name: organizationData.contact_name,
-            contact_email: organizationData.contact_email,
-            contact_phone: organizationData.contact_phone,
-            website: organizationData.website,
-            facebook: organizationData.facebook,
-            instagram: organizationData.instagram,
-            twitter: organizationData.twitter,
-            is_active: true,
-            approved_at: new Date().toISOString(),
-            prayer_times_url: organizationData.prayer_times_url,
-            latitude: lat,
-            longitude: lng,
-          })
-
-        if (orgError) {
-          console.error('Error creating organization:', orgError)
-        }
       }
 
       router.refresh()

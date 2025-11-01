@@ -120,11 +120,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create organization record' }, { status: 500 })
     }
 
+    // IMPORTANT: Do not return passwords in API responses. The temporary password
+    // should be sent to the user via a secure email service. Return only the
+    // created user and organization metadata.
     return NextResponse.json({ 
       success: true, 
       user: authUser.user,
-      organization: organization,
-      temporaryPassword: temporaryPassword // Include password in response
+      organization: organization
     })
 
   } catch (error) {
