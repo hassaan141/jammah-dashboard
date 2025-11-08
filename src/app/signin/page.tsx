@@ -33,7 +33,7 @@ export default function SignInPage() {
         if (email === 'jamahcommunityapp@gmail.com') {
           router.push('/admin')
         } else {
-          router.push('/org')
+          router.push('/org/profile')
         }
       }
     } catch (error) {
@@ -53,9 +53,7 @@ export default function SignInPage() {
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: email === 'jamahcommunityapp@gmail.com' 
-            ? `${window.location.origin}/admin`
-            : `${window.location.origin}/org`
+          emailRedirectTo: `${window.location.origin}/auth/callback`
         }
       })
 
