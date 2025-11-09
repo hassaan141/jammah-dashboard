@@ -1,11 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Country, State, City } from 'country-state-city'
 
 import TextInput from '@/components/forms/TextInput'
+import Select from '@/components/forms/Select'
 import SubmitButton from '@/components/forms/SubmitButton'
 import OrganizationTypeSelect from '@/components/apply/OrganizationTypeSelect'
 import PrayerTimesUpload from '@/components/apply/PrayerTimesUpload'
@@ -34,8 +36,47 @@ export default function ApplyPage() {
   const [submitted, setSubmitted] = useState(false)
   const router = useRouter()
 
+  // Country-State-City dropdown options
+  type Option = { label: string; value: string }
+  const countryOptions = useMemo<Option[]>(
+    () =>
+      Country.getAllCountries().map((c) => ({
+        label: c.name,
+        value: c.isoCode,
+      })),
+    [],
+  )
+  
+  const stateOptions = useMemo<Option[]>(() => {
+    if (!formData.country) return []
+    return State.getStatesOfCountry(formData.country).map((s) => ({
+      label: s.name,
+      value: s.isoCode,
+    }))
+  }, [formData.country])
+  
+  const cityOptions = useMemo<Option[]>(() => {
+    if (!formData.country || !formData.provinceState) return []
+    return City.getCitiesOfState(formData.country, formData.provinceState).map((ct) => ({
+      label: ct.name,
+      value: ct.name,
+    }))
+  }, [formData.country, formData.provinceState])
+
   const updateFormData = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
+    setFormData(prev => {
+      const newData = { ...prev, [field]: value }
+      
+      // Reset dependent fields when parent changes
+      if (field === 'country') {
+        newData.provinceState = ''
+        newData.city = ''
+      } else if (field === 'provinceState') {
+        newData.city = ''
+      }
+      
+      return newData
+    })
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -190,30 +231,35 @@ export default function ApplyPage() {
             />
 
             <div className="grid md:grid-cols-2 gap-6">
-              <TextInput
-                id="city"
-                label="City (Optional)"
-                value={formData.city}
-                onChange={(value) => updateFormData('city', value)}
-                placeholder="Toronto"
+              <Select
+                id="country"
+                label="Country (Optional)"
+                value={formData.country}
+                options={countryOptions}
+                onChange={(value) => updateFormData('country', value)}
+                placeholder="Select a country..."
               />
 
-              <TextInput
+              <Select
                 id="provinceState"
                 label="Province/State (Optional)"
                 value={formData.provinceState}
+                options={stateOptions}
                 onChange={(value) => updateFormData('provinceState', value)}
-                placeholder="Ontario"
+                placeholder="Select a province/state..."
+                disabled={!formData.country}
               />
             </div>
 
             <div className="grid md:grid-cols-2 gap-6">
-              <TextInput
-                id="country"
-                label="Country (Optional)"
-                value={formData.country}
-                onChange={(value) => updateFormData('country', value)}
-                placeholder="Canada"
+              <Select
+                id="city"
+                label="City (Optional)"
+                value={formData.city}
+                options={cityOptions}
+                onChange={(value) => updateFormData('city', value)}
+                placeholder="Select a city..."
+                disabled={!formData.country || !formData.provinceState}
               />
 
               <TextInput

@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { Country, State, City } from 'country-state-city'
 
 interface CreateMasjidFormProps {
   onSuccess?: () => void
@@ -10,15 +11,31 @@ interface CreateMasjidFormProps {
 export default function CreateMasjidForm({ onSuccess }: CreateMasjidFormProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
-    name: '',
-    display_name: '',
-    email: '',
-    website: '',
+    organizationName: '',
+    contactName: '',
+    contactEmail: '',
+    contactPhone: '',
+    address: '',
     city: '',
-    bio: ''
+    provinceState: 'British Columbia',
+    country: 'Canada',
+    postalCode: '',
+    website: '',
+    facebook: '',
+    instagram: '',
+    twitter: '',
   })
 
   const supabase = createClient()
+
+  // Get BC cities only (Canada = CA, British Columbia = BC)
+  type Option = { label: string; value: string }
+  const bcCityOptions = useMemo<Option[]>(() => {
+    return City.getCitiesOfState('CA', 'BC').map((city) => ({
+      label: city.name,
+      value: city.name,
+    }))
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -29,14 +46,19 @@ export default function CreateMasjidForm({ onSuccess }: CreateMasjidFormProps) {
       const { data, error } = await supabase
         .from('organizations')
         .insert({
-          name: formData.name,
-          display_name: formData.display_name || formData.name,
-          email: formData.email,
-          website: formData.website || null,
-          bio: formData.bio || null,
+          name: formData.organizationName,
+          contact_name: formData.contactName,
+          contact_email: formData.contactEmail,
+          contact_phone: formData.contactPhone,
+          address: formData.address,
           city: formData.city,
-          province_state: 'British Columbia',
-          country: 'Canada',
+          province_state: formData.provinceState,
+          country: formData.country,
+          postal_code: formData.postalCode,
+          website: formData.website || null,
+          facebook: formData.facebook || null,
+          instagram: formData.instagram || null,
+          twitter: formData.twitter || null,
           type: 'masjid',
           verified: true // Auto-approve masjids created by Awqat admin
         })
@@ -47,12 +69,19 @@ export default function CreateMasjidForm({ onSuccess }: CreateMasjidFormProps) {
 
       // Reset form
       setFormData({
-        name: '',
-        display_name: '',
-        email: '',
-        website: '',
+        organizationName: '',
+        contactName: '',
+        contactEmail: '',
+        contactPhone: '',
+        address: '',
         city: '',
-        bio: ''
+        provinceState: 'British Columbia',
+        country: 'Canada',
+        postalCode: '',
+        website: '',
+        facebook: '',
+        instagram: '',
+        twitter: '',
       })
 
       alert('Masjid created successfully!')
@@ -76,70 +105,154 @@ export default function CreateMasjidForm({ onSuccess }: CreateMasjidFormProps) {
       
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label htmlFor="name" className="block text-sm font-medium text-black mb-1">
+          <label htmlFor="organizationName" className="block text-sm font-medium text-black mb-1">
             Masjid Name *
           </label>
           <input
             type="text"
-            id="name"
-            name="name"
-            value={formData.name}
+            id="organizationName"
+            name="organizationName"
+            value={formData.organizationName}
             onChange={handleInputChange}
             required
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
-            placeholder="Enter masjid name"
+            placeholder="e.g., Al-Noor Islamic Center"
           />
         </div>
 
-        <div>
-          <label htmlFor="display_name" className="block text-sm font-medium text-black mb-1">
-            Display Name
-          </label>
-          <input
-            type="text"
-            id="display_name"
-            name="display_name"
-            value={formData.display_name}
-            onChange={handleInputChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
-            placeholder="Public display name (optional, defaults to name)"
-          />
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="contactName" className="block text-sm font-medium text-black mb-1">
+              Contact Name *
+            </label>
+            <input
+              type="text"
+              id="contactName"
+              name="contactName"
+              value={formData.contactName}
+              onChange={handleInputChange}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+              placeholder="Full name"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="contactEmail" className="block text-sm font-medium text-black mb-1">
+              Contact Email *
+            </label>
+            <input
+              type="email"
+              id="contactEmail"
+              name="contactEmail"
+              value={formData.contactEmail}
+              onChange={handleInputChange}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+              placeholder="email@example.com"
+            />
+          </div>
         </div>
 
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-black mb-1">
-            Email *
+          <label htmlFor="contactPhone" className="block text-sm font-medium text-black mb-1">
+            Contact Phone *
           </label>
           <input
-            type="email"
-            id="email"
-            name="email"
-            value={formData.email}
+            type="tel"
+            id="contactPhone"
+            name="contactPhone"
+            value={formData.contactPhone}
             onChange={handleInputChange}
             required
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
-            placeholder="contact@masjid.com"
+            placeholder="(555) 555-5555"
           />
         </div>
 
-
-
         <div>
-          <label htmlFor="city" className="block text-sm font-medium text-black mb-1">
-            City
+          <label htmlFor="address" className="block text-sm font-medium text-black mb-1">
+            Address
           </label>
           <input
             type="text"
-            id="city"
-            name="city"
-            value={formData.city}
+            id="address"
+            name="address"
+            value={formData.address}
             onChange={handleInputChange}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
-            placeholder="Vancouver"
+            placeholder="123 Sesame Street"
           />
         </div>
 
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="city" className="block text-sm font-medium text-black mb-1">
+              City
+            </label>
+            <select
+              id="city"
+              name="city"
+              value={formData.city}
+              onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+            >
+              <option value="">Select a city...</option>
+              {bcCityOptions.map((city) => (
+                <option key={city.value} value={city.value}>
+                  {city.label}
+                </option>
+              ))}
+            </select>
+          </div>
 
+          <div>
+            <label htmlFor="postalCode" className="block text-sm font-medium text-black mb-1">
+              Postal Code
+            </label>
+            <input
+              type="text"
+              id="postalCode"
+              name="postalCode"
+              value={formData.postalCode}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+              placeholder="V6B 1A1"
+            />
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="provinceState" className="block text-sm font-medium text-black mb-1">
+              Province/State
+            </label>
+            <input
+              type="text"
+              id="provinceState"
+              name="provinceState"
+              value={formData.provinceState}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-gray-50"
+              readOnly
+            />
+          </div>
+
+          <div>
+            <label htmlFor="country" className="block text-sm font-medium text-black mb-1">
+              Country
+            </label>
+            <input
+              type="text"
+              id="country"
+              name="country"
+              value={formData.country}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-gray-50"
+              readOnly
+            />
+          </div>
+        </div>
 
         <div>
           <label htmlFor="website" className="block text-sm font-medium text-black mb-1">
@@ -152,25 +265,53 @@ export default function CreateMasjidForm({ onSuccess }: CreateMasjidFormProps) {
             value={formData.website}
             onChange={handleInputChange}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
-            placeholder="https://masjid.com"
+            placeholder="https://yourmasjid.com"
           />
         </div>
 
-
-
-        <div>
-          <label htmlFor="bio" className="block text-sm font-medium text-black mb-1">
-            Description
-          </label>
-          <textarea
-            id="bio"
-            name="bio"
-            value={formData.bio}
-            onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
-            rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
-            placeholder="Brief description of the masjid (optional)"
-          />
+        <div className="grid md:grid-cols-3 gap-4">
+          <div>
+            <label htmlFor="facebook" className="block text-sm font-medium text-black mb-1">
+              Facebook
+            </label>
+            <input
+              type="url"
+              id="facebook"
+              name="facebook"
+              value={formData.facebook}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+              placeholder="https://facebook.com/yourpage"
+            />
+          </div>
+          <div>
+            <label htmlFor="instagram" className="block text-sm font-medium text-black mb-1">
+              Instagram
+            </label>
+            <input
+              type="url"
+              id="instagram"
+              name="instagram"
+              value={formData.instagram}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+              placeholder="https://instagram.com/yourprofile"
+            />
+          </div>
+          <div>
+            <label htmlFor="twitter" className="block text-sm font-medium text-black mb-1">
+              Twitter
+            </label>
+            <input
+              type="url"
+              id="twitter"
+              name="twitter"
+              value={formData.twitter}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+              placeholder="https://twitter.com/yourprofile"
+            />
+          </div>
         </div>
 
         <button
