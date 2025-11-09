@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import EditableTextInput from '@/components/forms/EditableTextInput'
 import EditableTextArea from '@/components/forms/EditableTextArea'
-import ReadOnlyLink from '@/components/forms/ReadOnlyLink'
+import EditableLink from '@/components/forms/EditableLink'
 import ErrorMessage from '@/components/ui/ErrorMessage'
 import SuccessMessage from '@/components/ui/SuccessMessage'
 
@@ -61,6 +61,7 @@ export default function AdminEditOrganizationPage() {
     instagram: '',
     twitter: '',
     donate_link: '',
+    prayer_times_url: '',
     is_active: true
   })
 
@@ -130,6 +131,7 @@ export default function AdminEditOrganizationPage() {
             instagram: mappedData.instagram || '',
             twitter: mappedData.twitter || '',
             donate_link: mappedData.donate_link || '',
+            prayer_times_url: mappedData.prayer_times_url || '',
             is_active: mappedData.is_active ?? true
           })
         }
@@ -151,6 +153,7 @@ export default function AdminEditOrganizationPage() {
           instagram: data.instagram || '',
           twitter: data.twitter || '',
           donate_link: data.donate_link || '',
+          prayer_times_url: data.prayer_times_url || '',
           is_active: data.is_active ?? true
         })
       }
@@ -183,6 +186,7 @@ export default function AdminEditOrganizationPage() {
       instagram: org.instagram || '',
       twitter: org.twitter || '',
       donate_link: org.donate_link || '',
+      prayer_times_url: org.prayer_times_url || '',
       is_active: org.is_active ?? true
     })
   }
@@ -596,12 +600,14 @@ export default function AdminEditOrganizationPage() {
                   className="mt-6"
                 />
 
-                <ReadOnlyLink
+                <EditableLink
                   id="prayer_times_url"
                   label="Prayer Times Schedule"
-                  url={organization?.prayer_times_url}
+                  value={formData.prayer_times_url}
+                  onChange={(value) => updateFormData('prayer_times_url', value)}
                   linkText="View Prayer Times"
-                  placeholder="No prayer times schedule uploaded"
+                  placeholder="Enter prayer times URL..."
+                  isEditMode={isEditMode}
                   className="mt-6"
                 />
 
