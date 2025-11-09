@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { getRedirectPath } from '@/lib/auth-utils'
 
 export default function SignInPage() {
   const [email, setEmail] = useState('')
@@ -29,12 +30,9 @@ export default function SignInPage() {
       if (error) {
         setError(error.message)
       } else {
-        // Check if this is the admin email
-        if (email === 'jamahcommunityapp@gmail.com') {
-          router.push('/admin')
-        } else {
-          router.push('/org/profile')
-        }
+        // Redirect based on user email/role
+        const redirectPath = getRedirectPath(email)
+        router.push(redirectPath)
       }
     } catch (error) {
       setError('An unexpected error occurred')

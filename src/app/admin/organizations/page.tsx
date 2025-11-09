@@ -45,21 +45,24 @@ export default function AdminOrganizationsPage() {
     async function loadOrganizations() {
       const supabase = createClient()
       
-      // Try to get from organizations table first
-      let { data: orgData, error: orgError } = await supabase
-        .from('organizations')
-        .select('*')
-        .order('created_at', { ascending: false })
-
-      if (orgError || !orgData || orgData.length === 0) {
-        console.log('No organizations table data, trying applications table:', orgError)
-        
-        // Fall back to applications table if organizations table is empty or doesn't exist
-        const { data: appData, error: appError } = await supabase
-          .from('applications')
-          .select('*')
-          .eq('application_status', 'approved')
+      try {
+        // Optimize: Only select necessary fields and limit initial load
+        const { data: orgData, error: orgError } = await supabase
+          .from('organizations')
+          .select('id, name, address, city, province_state, country, contact_name, contact_email, contact_phone, website, created_at')
           .order('created_at', { ascending: false })
+          .limit(100) // Limit to 100 organizations for better performance
+
+        if (orgError || !orgData || orgData.length === 0) {
+          console.log('No organizations table data, trying applications table:', orgError)
+          
+          // Fall back to applications table with optimized query
+          const { data: appData, error: appError } = await supabase
+            .from('applications')
+            .select('id, organization_name, address, city, province_state, country, contact_name, contact_email, contact_phone, website, created_at')
+            .eq('application_status', 'approved')
+            .order('created_at', { ascending: false })
+            .limit(100)
 
         if (appError) {
           console.error('Error loading from applications:', appError)
@@ -79,12 +82,17 @@ export default function AdminOrganizationsPage() {
             website: app.website,
             created_at: app.created_at
           }))
-          setOrganizations(mappedData)
+            setOrganizations(mappedData)
+          }
+        } else {
+          setOrganizations(orgData)
         }
-      } else {
-        setOrganizations(orgData)
+      } catch (err) {
+        console.error('Error loading organizations:', err)
+        setError('Failed to load organizations')
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     }
 
     loadOrganizations()

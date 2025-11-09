@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { getRedirectPath } from '@/lib/auth-utils'
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
@@ -14,9 +15,11 @@ export async function GET(request: NextRequest) {
       // Get user to determine redirect
       const { data: { user } } = await supabase.auth.getUser()
       
-      if (user?.email === 'jamahcommunityapp@gmail.com') {
-        return NextResponse.redirect(`${origin}/admin`)
+      if (user?.email) {
+        const redirectPath = getRedirectPath(user.email)
+        return NextResponse.redirect(`${origin}${redirectPath}`)
       } else {
+        // Fallback to org profile if no email
         return NextResponse.redirect(`${origin}/org/profile`)
       }
     }

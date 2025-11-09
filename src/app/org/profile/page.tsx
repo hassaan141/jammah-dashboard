@@ -1,16 +1,18 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
 import LoadingPage from '@/components/ui/LoadingPage'
 import ErrorMessage from '@/components/ui/ErrorMessage'
 import SuccessMessage from '@/components/ui/SuccessMessage'
-import EditableTextInput from '@/components/forms/EditableTextInput'
-import ReadOnlyLink from '@/components/forms/ReadOnlyLink'
-import OrganizationProfileHeader from '@/components/org/OrganizationProfileHeader'
-import AccessPending from '@/components/org/AccessPending'
+
+// Lazy load form components
+const EditableTextInput = lazy(() => import('@/components/forms/EditableTextInput'))
+const ReadOnlyLink = lazy(() => import('@/components/forms/ReadOnlyLink'))
+const OrganizationProfileHeader = lazy(() => import('@/components/org/OrganizationProfileHeader'))
+const AccessPending = lazy(() => import('@/components/org/AccessPending'))
 
 interface Organization {
   id: string
@@ -76,11 +78,11 @@ export default function OrgProfilePage() {
     donate_link: ''
   })
 
-  const updateFormData = (field: keyof FormData, value: string) => {
+  const updateFormData = useCallback((field: keyof FormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
-  }
+  }, [])
 
-  const resetFormData = (org: Organization) => {
+  const resetFormData = useCallback((org: Organization) => {
     setFormData({
       name: org.name || '',
       address: org.address || '',
@@ -97,7 +99,7 @@ export default function OrgProfilePage() {
       twitter: org.twitter || '',
       donate_link: org.donate_link || ''
     })
-  }
+  }, [])
 
   useEffect(() => {
     async function loadOrganization() {
@@ -143,7 +145,7 @@ export default function OrgProfilePage() {
     loadOrganization()
   }, [router])
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!organization) return
 
     setSaving(true)
@@ -241,21 +243,21 @@ export default function OrgProfilePage() {
     } finally {
       setSaving(false)
     }
-  }
+  }, [organization, formData])
 
-  const handleEdit = () => {
+  const handleEdit = useCallback(() => {
     setIsEditMode(true)
     setMessage('')
     setError('')
-  }
+  }, [])
 
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
     if (!organization) return
     resetFormData(organization)
     setIsEditMode(false)
     setMessage('')
     setError('')
-  }
+  }, [organization, resetFormData])
 
   if (loading) {
     return <LoadingPage message="Loading organization profile..." />
@@ -270,19 +272,22 @@ export default function OrgProfilePage() {
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white rounded-lg shadow-lg">
           <div className="px-6 py-8">
-            <OrganizationProfileHeader
-              isEditMode={isEditMode}
-              isSaving={saving}
-              onEdit={handleEdit}
-              onCancel={handleCancel}
-              onSave={handleSave}
-            />
+            <Suspense fallback={<div className="h-16 animate-pulse bg-gray-200 rounded"></div>}>
+              <OrganizationProfileHeader
+                isEditMode={isEditMode}
+                isSaving={saving}
+                onEdit={handleEdit}
+                onCancel={handleCancel}
+                onSave={handleSave}
+              />
+            </Suspense>
 
             <SuccessMessage message={message} className="mb-6" />
             <ErrorMessage message={error} className="mb-6" />
 
-            <div className="space-y-6">
-              <EditableTextInput
+            <Suspense fallback={<div className="space-y-6"><div className="h-20 animate-pulse bg-gray-200 rounded"></div><div className="h-20 animate-pulse bg-gray-200 rounded"></div><div className="h-20 animate-pulse bg-gray-200 rounded"></div></div>}>
+              <div className="space-y-6">
+                <EditableTextInput
                 id="name"
                 label="Organization Name"
                 value={formData.name}
@@ -437,7 +442,8 @@ export default function OrgProfilePage() {
                   />
                 </div>
               </div>
-            </div>
+              </div>
+            </Suspense>
           </div>
         </div>
       </div>

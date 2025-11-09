@@ -1,3 +1,5 @@
+import { memo, useCallback } from 'react'
+
 interface EditableTextInputProps {
   id: string
   label: string
@@ -10,7 +12,7 @@ interface EditableTextInputProps {
   className?: string
 }
 
-export default function EditableTextInput({
+const EditableTextInput = memo(function EditableTextInput({
   id,
   label,
   value,
@@ -21,6 +23,10 @@ export default function EditableTextInput({
   isEditMode,
   className = ''
 }: EditableTextInputProps) {
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    onChange(e.target.value)
+  }, [onChange])
+
   return (
     <div className={className}>
       <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-2">
@@ -32,7 +38,7 @@ export default function EditableTextInput({
         required={required}
         disabled={!isEditMode}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={handleChange}
         className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black ${
           !isEditMode ? 'bg-gray-50 cursor-not-allowed' : ''
         }`}
@@ -40,4 +46,6 @@ export default function EditableTextInput({
       />
     </div>
   )
-}
+})
+
+export default EditableTextInput

@@ -1,3 +1,5 @@
+import { memo, useCallback } from 'react'
+
 interface EditableTextAreaProps {
   id: string
   label: string
@@ -10,7 +12,7 @@ interface EditableTextAreaProps {
   rows?: number
 }
 
-export default function EditableTextArea({
+const EditableTextArea = memo(function EditableTextArea({
   id,
   label,
   value,
@@ -21,6 +23,10 @@ export default function EditableTextArea({
   className = '',
   rows = 4
 }: EditableTextAreaProps) {
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    onChange(e.target.value)
+  }, [onChange])
+
   return (
     <div className={className}>
       <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-2">
@@ -31,7 +37,7 @@ export default function EditableTextArea({
         required={required}
         disabled={!isEditMode}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={handleChange}
         rows={rows}
         className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black resize-vertical ${
           !isEditMode ? 'bg-gray-50 cursor-not-allowed' : ''
@@ -40,4 +46,6 @@ export default function EditableTextArea({
       />
     </div>
   )
-}
+})
+
+export default EditableTextArea
