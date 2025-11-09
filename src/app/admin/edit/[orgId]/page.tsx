@@ -3,9 +3,11 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import EditableTextInput from '@/components/forms/EditableTextInput'
-import EditableTextArea from '@/components/forms/EditableTextArea'
-import EditableLink from '@/components/forms/EditableLink'
+import BasicInformationSection from '@/components/admin/BasicInformationSection'
+import ContactInformationSection from '@/components/admin/ContactInformationSection'
+import AddressInformationSection from '@/components/admin/AddressInformationSection'
+import OnlinePresenceSection from '@/components/admin/OnlinePresenceSection'
+import AdminEditActions from '@/components/admin/AdminEditActions'
 import ErrorMessage from '@/components/ui/ErrorMessage'
 import SuccessMessage from '@/components/ui/SuccessMessage'
 
@@ -210,18 +212,24 @@ export default function AdminEditOrganizationPage() {
     if (!address.trim()) return { lat: null, lng: null }
 
     try {
-      const response = await fetch(`https://api.openrouteservice.org/geocode/search?api_key=5b3ce3597851110001cf6248bfe86ed54c294ac8af42b6ea19ee7013&text=${encodeURIComponent(address)}`)
-      const data = await response.json()
+      const response = await fetch('/api/geocode', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ address })
+      })
       
-      if (data.features && data.features.length > 0) {
-        const [lng, lat] = data.features[0].geometry.coordinates
-        return { lat, lng }
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
       }
+      
+      const data = await response.json()
+      return { lat: data.lat, lng: data.lng }
     } catch (error) {
       console.error('Geocoding error:', error)
+      return { lat: null, lng: null }
     }
-    
-    return { lat: null, lng: null }
   }
 
   const handleSave = async () => {
@@ -385,47 +393,15 @@ export default function AdminEditOrganizationPage() {
   return (
     <div className="max-w-4xl mx-auto py-6 sm:px-6 lg:px-8">
       <div className="px-4 py-6 sm:px-0">
-        <div className="mb-8">
-          <button
-            onClick={handleBack}
-            className="text-blue-600 hover:text-blue-800 mb-4"
-          >
-            ← Back to Organizations
-          </button>
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-black">Edit Organization</h1>
-              <p className="mt-2 text-black">
-                {isEditMode ? 'Update organization information' : `Viewing: ${organization?.name}`}
-              </p>
-            </div>
-            {!isEditMode ? (
-              <button
-                onClick={handleEdit}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
-              >
-                Edit Organization
-              </button>
-            ) : (
-              <div className="flex gap-2">
-                <button
-                  onClick={handleCancel}
-                  disabled={saving}
-                  className="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors disabled:opacity-50"
-                >
-                  {saving ? 'Saving...' : 'Save Changes'}
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
+        <AdminEditActions
+          organizationName={organization?.name}
+          isEditMode={isEditMode}
+          saving={saving}
+          onEdit={handleEdit}
+          onSave={handleSave}
+          onCancel={handleCancel}
+          onBack={handleBack}
+        />
 
         <ErrorMessage message={error} className="mb-6" />
         <SuccessMessage message={success} className="mb-6" />
@@ -433,214 +409,51 @@ export default function AdminEditOrganizationPage() {
         <div className="bg-white shadow rounded-lg">
           <div className="px-6 py-8">
             <div className="space-y-6">
-              {/* Basic Information */}
-              <div>
-                <h3 className="text-lg font-medium text-black mb-4">Basic Information</h3>
-                
-                <EditableTextInput
-                  id="name"
-                  label="Organization Name"
-                  value={formData.name}
-                  onChange={(value) => updateFormData('name', value)}
-                  placeholder="Your Organization Name"
-                  required
-                  isEditMode={isEditMode}
-                />
+              <BasicInformationSection
+                formData={{
+                  name: formData.name,
+                  description: formData.description,
+                  is_active: formData.is_active
+                }}
+                updateFormData={updateFormData}
+                isEditMode={isEditMode}
+                organizationId={orgId}
+              />
 
-                <EditableTextArea
-                  id="description"
-                  label="Description"
-                  value={formData.description}
-                  onChange={(value) => updateFormData('description', value)}
-                  placeholder="Describe your organization..."
-                  isEditMode={isEditMode}
-                  rows={4}
-                  className="mt-6"
-                />
+              <ContactInformationSection
+                formData={{
+                  contact_name: formData.contact_name,
+                  contact_phone: formData.contact_phone,
+                  contact_email: formData.contact_email
+                }}
+                updateFormData={updateFormData}
+                isEditMode={isEditMode}
+              />
 
-                <div className="mt-6">
-                  <label className="block text-sm font-medium text-black mb-2">
-                    Active Status
-                  </label>
-                  <div className="flex items-center space-x-4">
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        checked={formData.is_active === true}
-                        onChange={() => updateFormData('is_active', true)}
-                        disabled={!isEditMode}
-                        className="mr-2"
-                      />
-                      <span className={`text-sm ${!isEditMode ? 'text-gray-500' : 'text-black'}`}>Active</span>
-                    </label>
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        checked={formData.is_active === false}
-                        onChange={() => updateFormData('is_active', false)}
-                        disabled={!isEditMode}
-                        className="mr-2"
-                      />
-                      <span className={`text-sm ${!isEditMode ? 'text-gray-500' : 'text-black'}`}>Inactive</span>
-                    </label>
-                  </div>
-                </div>
-              </div>
+              <AddressInformationSection
+                formData={{
+                  address: formData.address,
+                  city: formData.city,
+                  province_state: formData.province_state,
+                  country: formData.country,
+                  postal_code: formData.postal_code
+                }}
+                updateFormData={updateFormData}
+                isEditMode={isEditMode}
+              />
 
-              {/* Contact Information */}
-              <div className="border-t pt-6">
-                <h3 className="text-lg font-medium text-black mb-4">Contact Information</h3>
-                
-                <div className="grid md:grid-cols-2 gap-6">
-                  <EditableTextInput
-                    id="contact_name"
-                    label="Contact Person"
-                    value={formData.contact_name}
-                    onChange={(value) => updateFormData('contact_name', value)}
-                    placeholder="John Smith"
-                    isEditMode={isEditMode}
-                  />
-                  <EditableTextInput
-                    id="contact_phone"
-                    label="Phone Number"
-                    type="tel"
-                    value={formData.contact_phone}
-                    onChange={(value) => updateFormData('contact_phone', value)}
-                    placeholder="+1 (555) 123-4567"
-                    isEditMode={isEditMode}
-                  />
-                </div>
-
-                <EditableTextInput
-                  id="contact_email"
-                  label="Contact Email"
-                  type="email"
-                  value={formData.contact_email}
-                  onChange={(value) => updateFormData('contact_email', value)}
-                  placeholder="contact@yourorganization.com"
-                  isEditMode={isEditMode}
-                  className="mt-6"
-                />
-              </div>
-
-              {/* Address Information */}
-              <div className="border-t pt-6">
-                <h3 className="text-lg font-medium text-black mb-4">Address Information</h3>
-                
-                <EditableTextInput
-                  id="address"
-                  label="Street Address"
-                  value={formData.address}
-                  onChange={(value) => updateFormData('address', value)}
-                  placeholder="123 Main Street"
-                  isEditMode={isEditMode}
-                />
-
-                <div className="grid md:grid-cols-2 gap-6 mt-6">
-                  <EditableTextInput
-                    id="city"
-                    label="City"
-                    value={formData.city}
-                    onChange={(value) => updateFormData('city', value)}
-                    placeholder="Toronto"
-                    isEditMode={isEditMode}
-                  />
-                  <EditableTextInput
-                    id="province_state"
-                    label="Province/State"
-                    value={formData.province_state}
-                    onChange={(value) => updateFormData('province_state', value)}
-                    placeholder="Ontario"
-                    isEditMode={isEditMode}
-                  />
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-6 mt-6">
-                  <EditableTextInput
-                    id="country"
-                    label="Country"
-                    value={formData.country}
-                    onChange={(value) => updateFormData('country', value)}
-                    placeholder="Canada"
-                    isEditMode={isEditMode}
-                  />
-                  <EditableTextInput
-                    id="postal_code"
-                    label="Postal/ZIP Code"
-                    value={formData.postal_code}
-                    onChange={(value) => updateFormData('postal_code', value)}
-                    placeholder="L1T 1X5"
-                    isEditMode={isEditMode}
-                  />
-                </div>
-              </div>
-
-              {/* Online Presence */}
-              <div className="border-t pt-6">
-                <h3 className="text-lg font-medium text-black mb-4">Online Presence</h3>
-                
-                <EditableTextInput
-                  id="website"
-                  label="Website"
-                  type="url"
-                  value={formData.website}
-                  onChange={(value) => updateFormData('website', value)}
-                  placeholder="https://yourorganization.com"
-                  isEditMode={isEditMode}
-                />
-
-                <EditableTextInput
-                  id="donate_link"
-                  label="Donation Link"
-                  type="url"
-                  value={formData.donate_link}
-                  onChange={(value) => updateFormData('donate_link', value)}
-                  placeholder="https://donate.yourorganization.com"
-                  isEditMode={isEditMode}
-                  className="mt-6"
-                />
-
-                <EditableLink
-                  id="prayer_times_url"
-                  label="Prayer Times Schedule"
-                  value={formData.prayer_times_url}
-                  onChange={(value) => updateFormData('prayer_times_url', value)}
-                  linkText="View Prayer Times"
-                  placeholder="Enter prayer times URL..."
-                  isEditMode={isEditMode}
-                  className="mt-6"
-                />
-
-                <div className="grid md:grid-cols-3 gap-6 mt-6">
-                  <EditableTextInput
-                    id="facebook"
-                    label="Facebook"
-                    type="url"
-                    value={formData.facebook}
-                    onChange={(value) => updateFormData('facebook', value)}
-                    placeholder="https://facebook.com/yourpage"
-                    isEditMode={isEditMode}
-                  />
-                  <EditableTextInput
-                    id="instagram"
-                    label="Instagram"
-                    type="url"
-                    value={formData.instagram}
-                    onChange={(value) => updateFormData('instagram', value)}
-                    placeholder="https://instagram.com/yourprofile"
-                    isEditMode={isEditMode}
-                  />
-                  <EditableTextInput
-                    id="twitter"
-                    label="Twitter"
-                    type="url"
-                    value={formData.twitter}
-                    onChange={(value) => updateFormData('twitter', value)}
-                    placeholder="https://twitter.com/yourprofile"
-                    isEditMode={isEditMode}
-                  />
-                </div>
-              </div>
+              <OnlinePresenceSection
+                formData={{
+                  website: formData.website,
+                  donate_link: formData.donate_link,
+                  prayer_times_url: formData.prayer_times_url,
+                  facebook: formData.facebook,
+                  instagram: formData.instagram,
+                  twitter: formData.twitter
+                }}
+                updateFormData={updateFormData}
+                isEditMode={isEditMode}
+              />
             </div>
           </div>
         </div>

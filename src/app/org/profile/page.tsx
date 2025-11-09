@@ -167,17 +167,19 @@ export default function OrgProfilePage() {
 
         if (addressString.trim()) {
           try {
-            const geoApiKey = process.env.NEXT_PUBLIC_OPENROUTE_API
-            if (geoApiKey) {
-              const url = `https://api.openrouteservice.org/geocode/search?api_key=${encodeURIComponent(geoApiKey)}&text=${encodeURIComponent(addressString)}`
-              const geoResp = await fetch(url)
-              if (geoResp.ok) {
-                const geoData = await geoResp.json()
-                if (geoData?.features?.[0]?.geometry?.coordinates) {
-                  const [longitude, latitude] = geoData.features[0].geometry.coordinates
-                  lat = latitude
-                  lng = longitude
-                }
+            const geoResp = await fetch('/api/geocode', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ address: addressString })
+            })
+            
+            if (geoResp.ok) {
+              const geoData = await geoResp.json()
+              if (geoData.lat !== null && geoData.lng !== null) {
+                lat = geoData.lat
+                lng = geoData.lng
               }
             }
           } catch (geoErr) {
