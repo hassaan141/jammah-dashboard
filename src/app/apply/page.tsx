@@ -18,6 +18,7 @@ export default function ApplyPage() {
     organizationName: '',
     organizationType: 'masjid',
     organizationTypeOther: '',
+    description: '',
     contactName: '',
     contactEmail: '',
     contactPhone: '',
@@ -27,6 +28,7 @@ export default function ApplyPage() {
     country: '',
     postalCode: '',
     website: '',
+    donateLink: '',
     facebook: '',
     instagram: '',
     twitter: '',
@@ -115,6 +117,7 @@ export default function ApplyPage() {
         .insert({
           organization_name: formData.organizationName,
           organization_type: formData.organizationType === 'other' ? formData.organizationTypeOther : formData.organizationType,
+          description: formData.description || null,
           contact_name: formData.contactName,
           contact_email: formData.contactEmail,
           contact_phone: formData.contactPhone,
@@ -124,6 +127,7 @@ export default function ApplyPage() {
           country: formData.country,
           postal_code: formData.postalCode,
           website: formData.website || null,
+          donate_link: formData.donateLink || null,
           facebook: formData.facebook || null,
           instagram: formData.instagram || null,
           twitter: formData.twitter || null,
@@ -183,6 +187,20 @@ export default function ApplyPage() {
               onOrganizationTypeChange={(value) => updateFormData('organizationType', value)}
               onOrganizationTypeOtherChange={(value) => updateFormData('organizationTypeOther', value)}
             />
+
+            <div>
+              <label htmlFor="descriptios" className="block text-sm font-medium text-gray-700 mb-2">
+                Description (Optional)
+              </label>
+              <textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => updateFormData('description', e.target.value)}
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
+                placeholder="Brief description of your organization..."
+              />
+            </div>
 
             {formData.organizationType === 'masjid' && (
               <PrayerTimesUpload 
@@ -278,6 +296,15 @@ export default function ApplyPage() {
               value={formData.website}
               onChange={(value) => updateFormData('website', value)}
               placeholder="https://yourorganization.com"
+            />
+
+            <TextInput
+              id="donateLink"
+              label="Donation Link (Optional)"
+              type="url"
+              value={formData.donateLink}
+              onChange={(value) => updateFormData('donateLink', value)}
+              placeholder="https://donations.yourorganization.com"
             />
 
             <div className="grid md:grid-cols-3 gap-6">

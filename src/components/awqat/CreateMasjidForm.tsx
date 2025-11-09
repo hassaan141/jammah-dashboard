@@ -12,6 +12,7 @@ export default function CreateMasjidForm({ onSuccess }: CreateMasjidFormProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
     organizationName: '',
+    description: '',
     contactName: '',
     contactEmail: '',
     contactPhone: '',
@@ -21,6 +22,7 @@ export default function CreateMasjidForm({ onSuccess }: CreateMasjidFormProps) {
     country: 'Canada',
     postalCode: '',
     website: '',
+    donateLink: '',
     facebook: '',
     instagram: '',
     twitter: '',
@@ -42,11 +44,13 @@ export default function CreateMasjidForm({ onSuccess }: CreateMasjidFormProps) {
     setIsLoading(true)
 
     try {
-      // Create the organization with masjid type and BC location
+      // Create application entry first (same as normal flow)
       const { data, error } = await supabase
-        .from('organizations')
+        .from('organization_applications')
         .insert({
-          name: formData.organizationName,
+          organization_name: formData.organizationName,
+          organization_type: 'masjid',
+          description: formData.description || null,
           contact_name: formData.contactName,
           contact_email: formData.contactEmail,
           contact_phone: formData.contactPhone,
@@ -56,11 +60,14 @@ export default function CreateMasjidForm({ onSuccess }: CreateMasjidFormProps) {
           country: formData.country,
           postal_code: formData.postalCode,
           website: formData.website || null,
+          donate_link: formData.donateLink || null,
           facebook: formData.facebook || null,
           instagram: formData.instagram || null,
           twitter: formData.twitter || null,
-          type: 'masjid',
-          verified: true // Auto-approve masjids created by Awqat admin
+          prayer_times_url: null,
+          application_status: 'submitted',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         })
         .select()
         .single()
@@ -70,6 +77,7 @@ export default function CreateMasjidForm({ onSuccess }: CreateMasjidFormProps) {
       // Reset form
       setFormData({
         organizationName: '',
+        description: '',
         contactName: '',
         contactEmail: '',
         contactPhone: '',
@@ -79,16 +87,17 @@ export default function CreateMasjidForm({ onSuccess }: CreateMasjidFormProps) {
         country: 'Canada',
         postalCode: '',
         website: '',
+        donateLink: '',
         facebook: '',
         instagram: '',
         twitter: '',
       })
 
-      alert('Masjid created successfully!')
+      alert('Masjid application submitted successfully! It will appear in the Awqat applications list for approval.')
       onSuccess?.()
     } catch (error) {
-      console.error('Error creating masjid:', error)
-      alert('Error creating masjid. Please try again.')
+      console.error('Error submitting masjid application:', error)
+      alert('Error submitting masjid application. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -117,6 +126,21 @@ export default function CreateMasjidForm({ onSuccess }: CreateMasjidFormProps) {
             required
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
             placeholder="e.g., Al-Noor Islamic Center"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="description" className="block text-sm font-medium text-black mb-1">
+            Description
+          </label>
+          <textarea
+            id="description"
+            name="description"
+            value={formData.description}
+            onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+            rows={3}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+            placeholder="Brief description of the masjid..."
           />
         </div>
 
@@ -266,6 +290,21 @@ export default function CreateMasjidForm({ onSuccess }: CreateMasjidFormProps) {
             onChange={handleInputChange}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
             placeholder="https://yourmasjid.com"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="donateLink" className="block text-sm font-medium text-black mb-1">
+            Donation Link
+          </label>
+          <input
+            type="url"
+            id="donateLink"
+            name="donateLink"
+            value={formData.donateLink}
+            onChange={handleInputChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+            placeholder="https://donations.yourmasjid.com"
           />
         </div>
 
