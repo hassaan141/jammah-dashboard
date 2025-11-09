@@ -4,6 +4,14 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
+import LoadingPage from '@/components/ui/LoadingPage'
+import ErrorMessage from '@/components/ui/ErrorMessage'
+import SuccessMessage from '@/components/ui/SuccessMessage'
+import EditableTextInput from '@/components/forms/EditableTextInput'
+import ReadOnlyLink from '@/components/forms/ReadOnlyLink'
+import OrganizationProfileHeader from '@/components/org/OrganizationProfileHeader'
+import AccessPending from '@/components/org/AccessPending'
+
 interface Organization {
   id: string
   name: string
@@ -20,8 +28,26 @@ interface Organization {
   instagram?: string
   twitter?: string
   donate_link?: string
+  prayer_times_url?: string
   latitude?: number
   longitude?: number
+}
+
+interface FormData {
+  name: string
+  address: string
+  city: string
+  province_state: string
+  country: string
+  postal_code: string
+  contact_name: string
+  contact_email: string
+  contact_phone: string
+  website: string
+  facebook: string
+  instagram: string
+  twitter: string
+  donate_link: string
 }
 
 export default function OrgProfilePage() {
@@ -33,7 +59,7 @@ export default function OrgProfilePage() {
   const [error, setError] = useState('')
   const router = useRouter()
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     name: '',
     address: '',
     city: '',
@@ -49,6 +75,29 @@ export default function OrgProfilePage() {
     twitter: '',
     donate_link: ''
   })
+
+  const updateFormData = (field: keyof FormData, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+  }
+
+  const resetFormData = (org: Organization) => {
+    setFormData({
+      name: org.name || '',
+      address: org.address || '',
+      city: org.city || '',
+      province_state: org.province_state || '',
+      country: org.country || '',
+      postal_code: org.postal_code || '',
+      contact_name: org.contact_name || '',
+      contact_email: org.contact_email || '',
+      contact_phone: org.contact_phone || '',
+      website: org.website || '',
+      facebook: org.facebook || '',
+      instagram: org.instagram || '',
+      twitter: org.twitter || '',
+      donate_link: org.donate_link || ''
+    })
+  }
 
   useEffect(() => {
     async function loadOrganization() {
@@ -87,30 +136,14 @@ export default function OrgProfilePage() {
       }
 
       setOrganization(org)
-      setFormData({
-        name: org.name || '',
-        address: org.address || '',
-        city: org.city || '',
-        province_state: org.province_state || '',
-        country: org.country || '',
-        postal_code: org.postal_code || '',
-        contact_name: org.contact_name || '',
-        contact_email: org.contact_email || '',
-        contact_phone: org.contact_phone || '',
-        website: org.website || '',
-        facebook: org.facebook || '',
-        instagram: org.instagram || '',
-        twitter: org.twitter || '',
-        donate_link: org.donate_link || ''
-      })
+      resetFormData(org)
       setLoading(false)
     }
 
     loadOrganization()
   }, [router])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSave = async () => {
     if (!organization) return
 
     setSaving(true)
@@ -177,21 +210,12 @@ export default function OrgProfilePage() {
         updateData.longitude = lng
       }
 
-      // Debug: Check current user
-      const { data: { user } } = await supabase.auth.getUser()
-      console.log('Current user ID:', user?.id)
-      console.log('Organization ID:', organization.id)
-      console.log('IDs match?', user?.id === organization.id)
-      console.log('Updating organization with data:', updateData)
-
       // Update using client-side Supabase (respects RLS)
       const { data, error } = await supabase
         .from('organizations')
         .update(updateData)
         .eq('id', organization.id)
         .select()
-
-      console.log('Update result:', { data, error })
 
       if (error) {
         console.error('Supabase update error:', error)
@@ -225,62 +249,18 @@ export default function OrgProfilePage() {
 
   const handleCancel = () => {
     if (!organization) return
-    
-    // Reset form data to original values
-    setFormData({
-      name: organization.name || '',
-      address: organization.address || '',
-      city: organization.city || '',
-      province_state: organization.province_state || '',
-      country: organization.country || '',
-      postal_code: organization.postal_code || '',
-      contact_name: organization.contact_name || '',
-      contact_email: organization.contact_email || '',
-      contact_phone: organization.contact_phone || '',
-      website: organization.website || '',
-      facebook: organization.facebook || '',
-      instagram: organization.instagram || '',
-      twitter: organization.twitter || '',
-      donate_link: organization.donate_link || ''
-    })
+    resetFormData(organization)
     setIsEditMode(false)
     setMessage('')
     setError('')
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-pulse text-center">
-          <div className="w-8 h-8 bg-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading organization profile...</p>
-        </div>
-      </div>
-    )
+    return <LoadingPage message="Loading organization profile..." />
   }
 
   if (error && !organization) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md text-center">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Access Pending</h2>
-          <p className="text-gray-600 mb-6">{error}</p>
-          <form action="/auth/signout" method="POST">
-            <button
-              type="submit"
-              className="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg"
-            >
-              Sign Out
-            </button>
-          </form>
-        </div>
-      </div>
-    )
+    return <AccessPending message={error} />
   }
 
   return (
@@ -288,319 +268,175 @@ export default function OrgProfilePage() {
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white rounded-lg shadow-lg">
           <div className="px-6 py-8">
-            <div className="flex justify-between items-center mb-8">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Organization Profile</h1>
-                <p className="text-gray-600 mt-1">
-                  {isEditMode ? 'Update your organization information' : 'View and manage your organization details'}
-                </p>
-              </div>
-              {!isEditMode ? (
-                <button
-                  onClick={handleEdit}
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
-                >
-                  Edit Profile
-                </button>
-              ) : (
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleCancel}
-                    className="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              )}
-            </div>
+            <OrganizationProfileHeader
+              isEditMode={isEditMode}
+              isSaving={saving}
+              onEdit={handleEdit}
+              onCancel={handleCancel}
+              onSave={handleSave}
+            />
 
-            {message && (
-              <div className="bg-green-50 border border-green-200 rounded-md p-4 mb-6">
-                <p className="text-green-600 text-sm">{message}</p>
-              </div>
-            )}
+            <SuccessMessage message={message} className="mb-6" />
+            <ErrorMessage message={error} className="mb-6" />
 
-            {error && (
-              <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
-                <p className="text-red-600 text-sm">{error}</p>
-              </div>
-            )}
+            <div className="space-y-6">
+              <EditableTextInput
+                id="name"
+                label="Organization Name"
+                value={formData.name}
+                onChange={(value) => updateFormData('name', value)}
+                placeholder="Your Organization Name"
+                required
+                isEditMode={isEditMode}
+              />
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                  Organization Name *
-                </label>
-                <input
-                  type="text"
-                  id="name"
-                  required
-                  disabled={!isEditMode}
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black ${
-                    !isEditMode ? 'bg-gray-50 cursor-not-allowed' : ''
-                  }`}
-                  placeholder="Your Organization Name"
+              <EditableTextInput
+                id="address"
+                label="Street Address"
+                value={formData.address}
+                onChange={(value) => updateFormData('address', value)}
+                placeholder="123 Main Street"
+                isEditMode={isEditMode}
+              />
+
+              <div className="grid md:grid-cols-2 gap-6">
+                <EditableTextInput
+                  id="city"
+                  label="City"
+                  value={formData.city}
+                  onChange={(value) => updateFormData('city', value)}
+                  placeholder="Toronto"
+                  isEditMode={isEditMode}
                 />
-              </div>
-
-              <div>
-                <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-2">
-                  Street Address
-                </label>
-                <input
-                  type="text"
-                  id="address"
-                  disabled={!isEditMode}
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black ${
-                    !isEditMode ? 'bg-gray-50 cursor-not-allowed' : ''
-                  }`}
-                  placeholder="123 Main Street"
+                <EditableTextInput
+                  id="province_state"
+                  label="Province/State"
+                  value={formData.province_state}
+                  onChange={(value) => updateFormData('province_state', value)}
+                  placeholder="Ontario"
+                  isEditMode={isEditMode}
                 />
               </div>
 
               <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-2">
-                    City
-                  </label>
-                  <input
-                    type="text"
-                    id="city"
-                    disabled={!isEditMode}
-                    value={formData.city}
-                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black ${
-                      !isEditMode ? 'bg-gray-50 cursor-not-allowed' : ''
-                    }`}
-                    placeholder="Toronto"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="province_state" className="block text-sm font-medium text-gray-700 mb-2">
-                    Province/State
-                  </label>
-                  <input
-                    type="text"
-                    id="province_state"
-                    disabled={!isEditMode}
-                    value={formData.province_state}
-                    onChange={(e) => setFormData({ ...formData, province_state: e.target.value })}
-                    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black ${
-                      !isEditMode ? 'bg-gray-50 cursor-not-allowed' : ''
-                    }`}
-                    placeholder="Ontario"
-                  />
-                </div>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="country" className="block text-sm font-medium text-gray-700 mb-2">
-                    Country
-                  </label>
-                  <input
-                    type="text"
-                    id="country"
-                    disabled={!isEditMode}
-                    value={formData.country}
-                    onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black ${
-                      !isEditMode ? 'bg-gray-50 cursor-not-allowed' : ''
-                    }`}
-                    placeholder="Canada"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="postal_code" className="block text-sm font-medium text-gray-700 mb-2">
-                    Postal/ZIP Code
-                  </label>
-                  <input
-                    type="text"
-                    id="postal_code"
-                    disabled={!isEditMode}
-                    value={formData.postal_code}
-                    onChange={(e) => setFormData({ ...formData, postal_code: e.target.value })}
-                    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black ${
-                      !isEditMode ? 'bg-gray-50 cursor-not-allowed' : ''
-                    }`}
-                    placeholder="L1T 1X5"
-                  />
-                </div>
+                <EditableTextInput
+                  id="country"
+                  label="Country"
+                  value={formData.country}
+                  onChange={(value) => updateFormData('country', value)}
+                  placeholder="Canada"
+                  isEditMode={isEditMode}
+                />
+                <EditableTextInput
+                  id="postal_code"
+                  label="Postal/ZIP Code"
+                  value={formData.postal_code}
+                  onChange={(value) => updateFormData('postal_code', value)}
+                  placeholder="L1T 1X5"
+                  isEditMode={isEditMode}
+                />
               </div>
 
               <div className="border-t pt-6">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Contact Information</h3>
                 
                 <div className="grid md:grid-cols-2 gap-6">
-                  <div>
-                    <label htmlFor="contact_name" className="block text-sm font-medium text-gray-700 mb-2">
-                      Contact Person
-                    </label>
-                    <input
-                      type="text"
-                      id="contact_name"
-                      disabled={!isEditMode}
-                      value={formData.contact_name}
-                      onChange={(e) => setFormData({ ...formData, contact_name: e.target.value })}
-                      className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black ${
-                        !isEditMode ? 'bg-gray-50 cursor-not-allowed' : ''
-                      }`}
-                      placeholder="John Smith"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="contact_phone" className="block text-sm font-medium text-gray-700 mb-2">
-                      Phone Number
-                    </label>
-                    <input
-                      type="tel"
-                      id="contact_phone"
-                      disabled={!isEditMode}
-                      value={formData.contact_phone}
-                      onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}
-                      className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black ${
-                        !isEditMode ? 'bg-gray-50 cursor-not-allowed' : ''
-                      }`}
-                      placeholder="+1 (555) 123-4567"
-                    />
-                  </div>
-                </div>
-
-                <div className="mt-6">
-                  <label htmlFor="contact_email" className="block text-sm font-medium text-gray-700 mb-2">
-                    Contact Email
-                  </label>
-                  <input
-                    type="email"
-                    id="contact_email"
-                    disabled={!isEditMode}
-                    value={formData.contact_email}
-                    onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
-                    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black ${
-                      !isEditMode ? 'bg-gray-50 cursor-not-allowed' : ''
-                    }`}
-                    placeholder="contact@yourorganization.com"
+                  <EditableTextInput
+                    id="contact_name"
+                    label="Contact Person"
+                    value={formData.contact_name}
+                    onChange={(value) => updateFormData('contact_name', value)}
+                    placeholder="John Smith"
+                    isEditMode={isEditMode}
+                  />
+                  <EditableTextInput
+                    id="contact_phone"
+                    label="Phone Number"
+                    type="tel"
+                    value={formData.contact_phone}
+                    onChange={(value) => updateFormData('contact_phone', value)}
+                    placeholder="+1 (555) 123-4567"
+                    isEditMode={isEditMode}
                   />
                 </div>
+
+                <EditableTextInput
+                  id="contact_email"
+                  label="Contact Email"
+                  type="email"
+                  value={formData.contact_email}
+                  onChange={(value) => updateFormData('contact_email', value)}
+                  placeholder="contact@yourorganization.com"
+                  isEditMode={isEditMode}
+                  className="mt-6"
+                />
               </div>
 
               <div className="border-t pt-6">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Online Presence</h3>
                 
-                <div>
-                  <label htmlFor="website" className="block text-sm font-medium text-gray-700 mb-2">
-                    Website
-                  </label>
-                  <input
-                    type="url"
-                    id="website"
-                    disabled={!isEditMode}
-                    value={formData.website}
-                    onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black ${
-                      !isEditMode ? 'bg-gray-50 cursor-not-allowed' : ''
-                    }`}
-                    placeholder="https://yourorganization.com"
-                  />
-                </div>
+                <EditableTextInput
+                  id="website"
+                  label="Website"
+                  type="url"
+                  value={formData.website}
+                  onChange={(value) => updateFormData('website', value)}
+                  placeholder="https://yourorganization.com"
+                  isEditMode={isEditMode}
+                />
 
-                <div className="mt-6">
-                  <label htmlFor="donate_link" className="block text-sm font-medium text-gray-700 mb-2">
-                    Donation Link
-                  </label>
-                  <input
-                    type="url"
-                    id="donate_link"
-                    disabled={!isEditMode}
-                    value={formData.donate_link}
-                    onChange={(e) => setFormData({ ...formData, donate_link: e.target.value })}
-                    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black ${
-                      !isEditMode ? 'bg-gray-50 cursor-not-allowed' : ''
-                    }`}
-                    placeholder="https://donate.yourorganization.com"
-                  />
-                </div>
+                <EditableTextInput
+                  id="donate_link"
+                  label="Donation Link"
+                  type="url"
+                  value={formData.donate_link}
+                  onChange={(value) => updateFormData('donate_link', value)}
+                  placeholder="https://donate.yourorganization.com"
+                  isEditMode={isEditMode}
+                  className="mt-6"
+                />
+
+                <ReadOnlyLink
+                  id="prayer_times_url"
+                  label="Prayer Times Schedule"
+                  url={organization?.prayer_times_url}
+                  linkText="View Prayer Times"
+                  placeholder="No prayer times schedule uploaded"
+                  className="mt-6"
+                />
 
                 <div className="grid md:grid-cols-3 gap-6 mt-6">
-                  <div>
-                    <label htmlFor="facebook" className="block text-sm font-medium text-gray-700 mb-2">
-                      Facebook
-                    </label>
-                    <input
-                      type="url"
-                      id="facebook"
-                      disabled={!isEditMode}
-                      value={formData.facebook}
-                      onChange={(e) => setFormData({ ...formData, facebook: e.target.value })}
-                      className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black ${
-                        !isEditMode ? 'bg-gray-50 cursor-not-allowed' : ''
-                      }`}
-                      placeholder="https://facebook.com/yourpage"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="instagram" className="block text-sm font-medium text-gray-700 mb-2">
-                      Instagram
-                    </label>
-                    <input
-                      type="url"
-                      id="instagram"
-                      disabled={!isEditMode}
-                      value={formData.instagram}
-                      onChange={(e) => setFormData({ ...formData, instagram: e.target.value })}
-                      className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black ${
-                        !isEditMode ? 'bg-gray-50 cursor-not-allowed' : ''
-                      }`}
-                      placeholder="https://instagram.com/yourprofile"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="twitter" className="block text-sm font-medium text-gray-700 mb-2">
-                      Twitter/X
-                    </label>
-                    <input
-                      type="url"
-                      id="twitter"
-                      disabled={!isEditMode}
-                      value={formData.twitter}
-                      onChange={(e) => setFormData({ ...formData, twitter: e.target.value })}
-                      className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black ${
-                        !isEditMode ? 'bg-gray-50 cursor-not-allowed' : ''
-                      }`}
-                      placeholder="https://twitter.com/yourprofile"
-                    />
-                  </div>
+                  <EditableTextInput
+                    id="facebook"
+                    label="Facebook"
+                    type="url"
+                    value={formData.facebook}
+                    onChange={(value) => updateFormData('facebook', value)}
+                    placeholder="https://facebook.com/yourpage"
+                    isEditMode={isEditMode}
+                  />
+                  <EditableTextInput
+                    id="instagram"
+                    label="Instagram"
+                    type="url"
+                    value={formData.instagram}
+                    onChange={(value) => updateFormData('instagram', value)}
+                    placeholder="https://instagram.com/yourprofile"
+                    isEditMode={isEditMode}
+                  />
+                  <EditableTextInput
+                    id="twitter"
+                    label="Twitter"
+                    type="url"
+                    value={formData.twitter}
+                    onChange={(value) => updateFormData('twitter', value)}
+                    placeholder="https://twitter.com/yourprofile"
+                    isEditMode={isEditMode}
+                  />
                 </div>
               </div>
-
-              {isEditMode && (
-                <div className="flex justify-end pt-6">
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-2 px-6 rounded-lg transition-colors"
-                  >
-                    {saving ? 'Saving...' : 'Save Changes'}
-                  </button>
-                </div>
-              )}
-            </form>
+            </div>
           </div>
-        </div>
-
-        <div className="mt-4 text-center">
-          <form action="/auth/signout" method="POST" className="inline">
-            <button
-              type="submit"
-              className="text-gray-600 hover:text-gray-800 font-medium"
-            >
-              Sign Out
-            </button>
-          </form>
         </div>
       </div>
     </div>
