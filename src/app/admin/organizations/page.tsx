@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import SearchBar from '@/components/forms/SearchBar'
 
 interface Organization {
   id: string
@@ -22,6 +23,23 @@ export default function AdminOrganizationsPage() {
   const [organizations, setOrganizations] = useState<Organization[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
+
+  // Filter organizations based on search query
+  const filteredOrganizations = useMemo(() => {
+    if (!searchQuery.trim()) return organizations
+
+    const query = searchQuery.toLowerCase()
+    return organizations.filter(org => 
+      org.name?.toLowerCase().includes(query) ||
+      org.contact_name?.toLowerCase().includes(query) ||
+      org.contact_email?.toLowerCase().includes(query) ||
+      org.city?.toLowerCase().includes(query) ||
+      org.province_state?.toLowerCase().includes(query) ||
+      org.country?.toLowerCase().includes(query) ||
+      org.address?.toLowerCase().includes(query)
+    )
+  }, [organizations, searchQuery])
 
   useEffect(() => {
     async function loadOrganizations() {
@@ -104,11 +122,37 @@ export default function AdminOrganizationsPage() {
     <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
       <div className="px-4 py-6 sm:px-0">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Organizations</h1>
-          <p className="mt-2 text-gray-600">
-            Manage and edit all verified organizations
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Organizations</h1>
+              <p className="mt-2 text-gray-600">
+                Manage and edit all verified organizations
+              </p>
+            </div>
+            {organizations.length > 0 && (
+              <div className="text-right">
+                <p className="text-2xl font-semibold text-gray-900">{organizations.length}</p>
+                <p className="text-sm text-gray-600">Total Organizations</p>
+              </div>
+            )}
+          </div>
         </div>
+
+        {organizations.length > 0 && (
+          <div className="mb-6">
+            <SearchBar
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder="Search organizations by name, contact, location..."
+              className="max-w-md"
+            />
+            {searchQuery && (
+              <p className="mt-2 text-sm text-gray-600">
+                {filteredOrganizations.length} of {organizations.length} organizations match "{searchQuery}"
+              </p>
+            )}
+          </div>
+        )}
 
         {organizations.length === 0 ? (
           <div className="text-center py-12">
@@ -120,9 +164,25 @@ export default function AdminOrganizationsPage() {
               No organizations have been approved yet.
             </p>
           </div>
+        ) : filteredOrganizations.length === 0 && searchQuery ? (
+          <div className="text-center py-12">
+            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <h3 className="mt-2 text-lg font-medium text-gray-900">No results found</h3>
+            <p className="mt-1 text-gray-500">
+              No organizations match your search for "{searchQuery}".
+            </p>
+            <button
+              onClick={() => setSearchQuery('')}
+              className="mt-4 text-blue-600 hover:text-blue-800 font-medium"
+            >
+              Clear search
+            </button>
+          </div>
         ) : (
           <div className="grid gap-6">
-            {organizations.map((org) => (
+            {filteredOrganizations.map((org) => (
               <div key={org.id} className="bg-white shadow rounded-lg overflow-hidden">
                 <div className="px-6 py-4">
                   <div className="flex justify-between items-start">

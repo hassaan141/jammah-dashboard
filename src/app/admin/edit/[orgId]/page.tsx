@@ -3,6 +3,11 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import EditableTextInput from '@/components/forms/EditableTextInput'
+import EditableTextArea from '@/components/forms/EditableTextArea'
+import ReadOnlyLink from '@/components/forms/ReadOnlyLink'
+import ErrorMessage from '@/components/ui/ErrorMessage'
+import SuccessMessage from '@/components/ui/SuccessMessage'
 
 interface Organization {
   id: string
@@ -19,6 +24,12 @@ interface Organization {
   contact_email?: string
   contact_phone?: string
   website?: string
+  facebook?: string
+  instagram?: string
+  twitter?: string
+  donate_link?: string
+  prayer_times_url?: string
+  is_active?: boolean
 }
 
 export default function AdminEditOrganizationPage() {
@@ -31,6 +42,7 @@ export default function AdminEditOrganizationPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [isEditMode, setIsEditMode] = useState(false)
 
   // Form fields
   const [formData, setFormData] = useState({
@@ -44,7 +56,12 @@ export default function AdminEditOrganizationPage() {
     contact_name: '',
     contact_email: '',
     contact_phone: '',
-    website: ''
+    website: '',
+    facebook: '',
+    instagram: '',
+    twitter: '',
+    donate_link: '',
+    is_active: true
   })
 
   useEffect(() => {
@@ -87,7 +104,13 @@ export default function AdminEditOrganizationPage() {
             contact_name: appData.contact_name,
             contact_email: appData.contact_email,
             contact_phone: appData.contact_phone,
-            website: appData.website
+            website: appData.website,
+            facebook: (appData as any).facebook || '',
+            instagram: (appData as any).instagram || '',
+            twitter: (appData as any).twitter || '',
+            donate_link: (appData as any).donate_link || '',
+            is_active: (appData as any).is_active ?? true,
+            prayer_times_url: (appData as any).prayer_times_url || ''
           }
           
           setOrganization(mappedData)
@@ -102,7 +125,12 @@ export default function AdminEditOrganizationPage() {
             contact_name: mappedData.contact_name || '',
             contact_email: mappedData.contact_email || '',
             contact_phone: mappedData.contact_phone || '',
-            website: mappedData.website || ''
+            website: mappedData.website || '',
+            facebook: mappedData.facebook || '',
+            instagram: mappedData.instagram || '',
+            twitter: mappedData.twitter || '',
+            donate_link: mappedData.donate_link || '',
+            is_active: mappedData.is_active ?? true
           })
         }
       } else if (data) {
@@ -118,7 +146,12 @@ export default function AdminEditOrganizationPage() {
           contact_name: data.contact_name || '',
           contact_email: data.contact_email || '',
           contact_phone: data.contact_phone || '',
-          website: data.website || ''
+          website: data.website || '',
+          facebook: data.facebook || '',
+          instagram: data.instagram || '',
+          twitter: data.twitter || '',
+          donate_link: data.donate_link || '',
+          is_active: data.is_active ?? true
         })
       }
       setLoading(false)
@@ -129,12 +162,44 @@ export default function AdminEditOrganizationPage() {
     }
   }, [orgId])
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }))
+  const updateFormData = (field: string, value: string | boolean) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+  }
+
+  const resetFormData = (org: Organization) => {
+    setFormData({
+      name: org.name || '',
+      description: org.description || '',
+      address: org.address || '',
+      city: org.city || '',
+      province_state: org.province_state || '',
+      country: org.country || '',
+      postal_code: org.postal_code || '',
+      contact_name: org.contact_name || '',
+      contact_email: org.contact_email || '',
+      contact_phone: org.contact_phone || '',
+      website: org.website || '',
+      facebook: org.facebook || '',
+      instagram: org.instagram || '',
+      twitter: org.twitter || '',
+      donate_link: org.donate_link || '',
+      is_active: org.is_active ?? true
+    })
+  }
+
+  const handleEdit = () => {
+    setIsEditMode(true)
+    setError('')
+    setSuccess('')
+  }
+
+  const handleCancel = () => {
+    if (organization) {
+      resetFormData(organization)
+    }
+    setIsEditMode(false)
+    setError('')
+    setSuccess('')
   }
 
   const geocodeAddress = async (address: string) => {
@@ -222,6 +287,7 @@ export default function AdminEditOrganizationPage() {
         } else {
           console.log('Application updated successfully')
           setSuccess('Organization updated successfully!')
+          setIsEditMode(false)
           
           // Refresh the organization data from applications
           const { data: appData } = await supabase
@@ -253,6 +319,7 @@ export default function AdminEditOrganizationPage() {
       } else {
         console.log('Organization updated successfully')
         setSuccess('Organization updated successfully!')
+        setIsEditMode(false)
         
         // Refresh the organization data
         const { data } = await supabase
@@ -273,7 +340,7 @@ export default function AdminEditOrganizationPage() {
     }
   }
 
-  const handleCancel = () => {
+  const handleBack = () => {
     router.push('/admin/organizations')
   }
 
@@ -316,220 +383,257 @@ export default function AdminEditOrganizationPage() {
       <div className="px-4 py-6 sm:px-0">
         <div className="mb-8">
           <button
-            onClick={handleCancel}
+            onClick={handleBack}
             className="text-blue-600 hover:text-blue-800 mb-4"
           >
             ← Back to Organizations
           </button>
-          <h1 className="text-3xl font-bold text-gray-900">Edit Organization</h1>
-          <p className="mt-2 text-gray-600">
-            Admin editing: {organization?.name}
-          </p>
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold text-black">Edit Organization</h1>
+              <p className="mt-2 text-black">
+                {isEditMode ? 'Update organization information' : `Viewing: ${organization?.name}`}
+              </p>
+            </div>
+            {!isEditMode ? (
+              <button
+                onClick={handleEdit}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+              >
+                Edit Organization
+              </button>
+            ) : (
+              <div className="flex gap-2">
+                <button
+                  onClick={handleCancel}
+                  disabled={saving}
+                  className="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
-        {error && (
-          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
-            <div className="text-red-700">{error}</div>
-          </div>
-        )}
-
-        {success && (
-          <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-md">
-            <div className="text-green-700">{success}</div>
-          </div>
-        )}
+        <ErrorMessage message={error} className="mb-6" />
+        <SuccessMessage message={success} className="mb-6" />
 
         <div className="bg-white shadow rounded-lg">
-          <div className="px-6 py-4">
+          <div className="px-6 py-8">
             <div className="space-y-6">
               {/* Basic Information */}
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Basic Information</h3>
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                      Organization Name *
-                    </label>
-                    <input
-                      type="text"
-                      id="name"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="website" className="block text-sm font-medium text-gray-700 mb-1">
-                      Website
-                    </label>
-                    <input
-                      type="url"
-                      id="website"
-                      name="website"
-                      value={formData.website}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="https://example.com"
-                    />
-                  </div>
-                </div>
+                <h3 className="text-lg font-medium text-black mb-4">Basic Information</h3>
                 
-                <div className="mt-4">
-                  <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-                    Description
+                <EditableTextInput
+                  id="name"
+                  label="Organization Name"
+                  value={formData.name}
+                  onChange={(value) => updateFormData('name', value)}
+                  placeholder="Your Organization Name"
+                  required
+                  isEditMode={isEditMode}
+                />
+
+                <EditableTextArea
+                  id="description"
+                  label="Description"
+                  value={formData.description}
+                  onChange={(value) => updateFormData('description', value)}
+                  placeholder="Describe your organization..."
+                  isEditMode={isEditMode}
+                  rows={4}
+                  className="mt-6"
+                />
+
+                <div className="mt-6">
+                  <label className="block text-sm font-medium text-black mb-2">
+                    Active Status
                   </label>
-                  <textarea
-                    id="description"
-                    name="description"
-                    value={formData.description}
-                    onChange={handleInputChange}
-                    rows={4}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Describe your organization..."
-                  />
+                  <div className="flex items-center space-x-4">
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        checked={formData.is_active === true}
+                        onChange={() => updateFormData('is_active', true)}
+                        disabled={!isEditMode}
+                        className="mr-2"
+                      />
+                      <span className={`text-sm ${!isEditMode ? 'text-gray-500' : 'text-black'}`}>Active</span>
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        checked={formData.is_active === false}
+                        onChange={() => updateFormData('is_active', false)}
+                        disabled={!isEditMode}
+                        className="mr-2"
+                      />
+                      <span className={`text-sm ${!isEditMode ? 'text-gray-500' : 'text-black'}`}>Inactive</span>
+                    </label>
+                  </div>
                 </div>
               </div>
 
               {/* Contact Information */}
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Contact Information</h3>
-                <div className="grid md:grid-cols-3 gap-4">
-                  <div>
-                    <label htmlFor="contact_name" className="block text-sm font-medium text-gray-700 mb-1">
-                      Contact Name
-                    </label>
-                    <input
-                      type="text"
-                      id="contact_name"
-                      name="contact_name"
-                      value={formData.contact_name}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="contact_email" className="block text-sm font-medium text-gray-700 mb-1">
-                      Contact Email
-                    </label>
-                    <input
-                      type="email"
-                      id="contact_email"
-                      name="contact_email"
-                      value={formData.contact_email}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="contact_phone" className="block text-sm font-medium text-gray-700 mb-1">
-                      Contact Phone
-                    </label>
-                    <input
-                      type="tel"
-                      id="contact_phone"
-                      name="contact_phone"
-                      value={formData.contact_phone}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
+              <div className="border-t pt-6">
+                <h3 className="text-lg font-medium text-black mb-4">Contact Information</h3>
+                
+                <div className="grid md:grid-cols-2 gap-6">
+                  <EditableTextInput
+                    id="contact_name"
+                    label="Contact Person"
+                    value={formData.contact_name}
+                    onChange={(value) => updateFormData('contact_name', value)}
+                    placeholder="John Smith"
+                    isEditMode={isEditMode}
+                  />
+                  <EditableTextInput
+                    id="contact_phone"
+                    label="Phone Number"
+                    type="tel"
+                    value={formData.contact_phone}
+                    onChange={(value) => updateFormData('contact_phone', value)}
+                    placeholder="+1 (555) 123-4567"
+                    isEditMode={isEditMode}
+                  />
                 </div>
+
+                <EditableTextInput
+                  id="contact_email"
+                  label="Contact Email"
+                  type="email"
+                  value={formData.contact_email}
+                  onChange={(value) => updateFormData('contact_email', value)}
+                  placeholder="contact@yourorganization.com"
+                  isEditMode={isEditMode}
+                  className="mt-6"
+                />
               </div>
 
               {/* Address Information */}
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Address Information</h3>
-                <div className="space-y-4">
-                  <div>
-                    <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
-                      Street Address
-                    </label>
-                    <input
-                      type="text"
-                      id="address"
-                      name="address"
-                      value={formData.address}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  
-                  <div className="grid md:grid-cols-4 gap-4">
-                    <div>
-                      <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">
-                        City
-                      </label>
-                      <input
-                        type="text"
-                        id="city"
-                        name="city"
-                        value={formData.city}
-                        onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="province_state" className="block text-sm font-medium text-gray-700 mb-1">
-                        Province/State
-                      </label>
-                      <input
-                        type="text"
-                        id="province_state"
-                        name="province_state"
-                        value={formData.province_state}
-                        onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="country" className="block text-sm font-medium text-gray-700 mb-1">
-                        Country
-                      </label>
-                      <input
-                        type="text"
-                        id="country"
-                        name="country"
-                        value={formData.country}
-                        onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="postal_code" className="block text-sm font-medium text-gray-700 mb-1">
-                        Postal Code
-                      </label>
-                      <input
-                        type="text"
-                        id="postal_code"
-                        name="postal_code"
-                        value={formData.postal_code}
-                        onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                  </div>
+              <div className="border-t pt-6">
+                <h3 className="text-lg font-medium text-black mb-4">Address Information</h3>
+                
+                <EditableTextInput
+                  id="address"
+                  label="Street Address"
+                  value={formData.address}
+                  onChange={(value) => updateFormData('address', value)}
+                  placeholder="123 Main Street"
+                  isEditMode={isEditMode}
+                />
+
+                <div className="grid md:grid-cols-2 gap-6 mt-6">
+                  <EditableTextInput
+                    id="city"
+                    label="City"
+                    value={formData.city}
+                    onChange={(value) => updateFormData('city', value)}
+                    placeholder="Toronto"
+                    isEditMode={isEditMode}
+                  />
+                  <EditableTextInput
+                    id="province_state"
+                    label="Province/State"
+                    value={formData.province_state}
+                    onChange={(value) => updateFormData('province_state', value)}
+                    placeholder="Ontario"
+                    isEditMode={isEditMode}
+                  />
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-6 mt-6">
+                  <EditableTextInput
+                    id="country"
+                    label="Country"
+                    value={formData.country}
+                    onChange={(value) => updateFormData('country', value)}
+                    placeholder="Canada"
+                    isEditMode={isEditMode}
+                  />
+                  <EditableTextInput
+                    id="postal_code"
+                    label="Postal/ZIP Code"
+                    value={formData.postal_code}
+                    onChange={(value) => updateFormData('postal_code', value)}
+                    placeholder="L1T 1X5"
+                    isEditMode={isEditMode}
+                  />
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex space-x-4 pt-6 border-t">
-                <button
-                  type="button"
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold py-2 px-6 rounded-lg transition-colors"
-                >
-                  {saving ? 'Saving...' : 'Save Changes'}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleCancel}
-                  className="bg-gray-300 hover:bg-gray-400 text-gray-700 font-semibold py-2 px-6 rounded-lg transition-colors"
-                >
-                  Cancel
-                </button>
+              {/* Online Presence */}
+              <div className="border-t pt-6">
+                <h3 className="text-lg font-medium text-black mb-4">Online Presence</h3>
+                
+                <EditableTextInput
+                  id="website"
+                  label="Website"
+                  type="url"
+                  value={formData.website}
+                  onChange={(value) => updateFormData('website', value)}
+                  placeholder="https://yourorganization.com"
+                  isEditMode={isEditMode}
+                />
+
+                <EditableTextInput
+                  id="donate_link"
+                  label="Donation Link"
+                  type="url"
+                  value={formData.donate_link}
+                  onChange={(value) => updateFormData('donate_link', value)}
+                  placeholder="https://donate.yourorganization.com"
+                  isEditMode={isEditMode}
+                  className="mt-6"
+                />
+
+                <ReadOnlyLink
+                  id="prayer_times_url"
+                  label="Prayer Times Schedule"
+                  url={organization?.prayer_times_url}
+                  linkText="View Prayer Times"
+                  placeholder="No prayer times schedule uploaded"
+                  className="mt-6"
+                />
+
+                <div className="grid md:grid-cols-3 gap-6 mt-6">
+                  <EditableTextInput
+                    id="facebook"
+                    label="Facebook"
+                    type="url"
+                    value={formData.facebook}
+                    onChange={(value) => updateFormData('facebook', value)}
+                    placeholder="https://facebook.com/yourpage"
+                    isEditMode={isEditMode}
+                  />
+                  <EditableTextInput
+                    id="instagram"
+                    label="Instagram"
+                    type="url"
+                    value={formData.instagram}
+                    onChange={(value) => updateFormData('instagram', value)}
+                    placeholder="https://instagram.com/yourprofile"
+                    isEditMode={isEditMode}
+                  />
+                  <EditableTextInput
+                    id="twitter"
+                    label="Twitter"
+                    type="url"
+                    value={formData.twitter}
+                    onChange={(value) => updateFormData('twitter', value)}
+                    placeholder="https://twitter.com/yourprofile"
+                    isEditMode={isEditMode}
+                  />
+                </div>
               </div>
             </div>
           </div>
