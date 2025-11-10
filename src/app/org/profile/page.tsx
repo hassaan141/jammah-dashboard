@@ -1,374 +1,449 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { User } from '@supabase/supabase-js'
+import { useRouter } from 'next/navigation'
+
+import LoadingPage from '@/components/ui/LoadingPage'
+import ErrorMessage from '@/components/ui/ErrorMessage'
+import SuccessMessage from '@/components/ui/SuccessMessage'
+
+// Lazy load form components
+const EditableTextInput = lazy(() => import('@/components/forms/EditableTextInput'))
+const ReadOnlyLink = lazy(() => import('@/components/forms/ReadOnlyLink'))
+const OrganizationProfileHeader = lazy(() => import('@/components/org/OrganizationProfileHeader'))
+const AccessPending = lazy(() => import('@/components/org/AccessPending'))
 
 interface Organization {
   id: string
   name: string
-  display_name: string
-  type: string
-  logo_url?: string
-  banner_url?: string
-  bio?: string
+  address?: string
   city?: string
+  province_state?: string
   country?: string
+  postal_code?: string
+  contact_name?: string
+  contact_email?: string
+  contact_phone?: string
   website?: string
-  email?: string
+  facebook?: string
+  instagram?: string
+  twitter?: string
+  donate_link?: string
+  prayer_times_url?: string
+  latitude?: number
+  longitude?: number
+}
+
+interface FormData {
+  name: string
+  address: string
+  city: string
+  province_state: string
+  country: string
+  postal_code: string
+  contact_name: string
+  contact_email: string
+  contact_phone: string
+  website: string
+  facebook: string
+  instagram: string
+  twitter: string
+  donate_link: string
 }
 
 export default function OrgProfilePage() {
-  const [user, setUser] = useState<User | null>(null)
   const [organization, setOrganization] = useState<Organization | null>(null)
-  const [formData, setFormData] = useState<Partial<Organization>>({})
-  const [isLoading, setIsLoading] = useState(true)
-  const [isSaving, setSaving] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [isEditMode, setIsEditMode] = useState(false)
   const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+  const router = useRouter()
 
-  useEffect(() => {
-    loadUserAndOrg()
+  const [formData, setFormData] = useState<FormData>({
+    name: '',
+    address: '',
+    city: '',
+    province_state: '',
+    country: '',
+    postal_code: '',
+    contact_name: '',
+    contact_email: '',
+    contact_phone: '',
+    website: '',
+    facebook: '',
+    instagram: '',
+    twitter: '',
+    donate_link: ''
+  })
+
+  const updateFormData = useCallback((field: keyof FormData, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
   }, [])
 
-  const loadUserAndOrg = async () => {
-    const supabase = createClient()
-    
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+  const resetFormData = useCallback((org: Organization) => {
+    setFormData({
+      name: org.name || '',
+      address: org.address || '',
+      city: org.city || '',
+      province_state: org.province_state || '',
+      country: org.country || '',
+      postal_code: org.postal_code || '',
+      contact_name: org.contact_name || '',
+      contact_email: org.contact_email || '',
+      contact_phone: org.contact_phone || '',
+      website: org.website || '',
+      facebook: org.facebook || '',
+      instagram: org.instagram || '',
+      twitter: org.twitter || '',
+      donate_link: org.donate_link || ''
+    })
+  }, [])
 
-    setUser(user)
+  useEffect(() => {
+    async function loadOrganization() {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
 
-    const { data: orgAdmin } = await supabase
-      .from('organization_admins')
-      .select(`
-        *,
-        organization:organizations(*)
-      `)
-      .eq('user_id', user.id)
-      .single()
+      if (!user) {
+        router.push('/signin')
+        return
+      }
 
-    if (orgAdmin?.organization) {
-      const org = orgAdmin.organization as Organization
+      // Get user profile to find their org_id
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_org, org_id')
+        .eq('id', user.id)
+        .single()
+
+      if (!profile?.is_org || !profile?.org_id) {
+        setError('Your organization application is still being reviewed.')
+        setLoading(false)
+        return
+      }
+
+      // Get organization details
+      const { data: org, error: orgError } = await supabase
+        .from('organizations')
+        .select('*')
+        .eq('id', profile.org_id)
+        .single()
+
+      if (orgError || !org) {
+        setError('Failed to load organization details.')
+        setLoading(false)
+        return
+      }
+
       setOrganization(org)
-      setFormData(org)
+      resetFormData(org)
+      setLoading(false)
     }
 
-    setIsLoading(false)
-  }
+    loadOrganization()
+  }, [router])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSave = useCallback(async () => {
     if (!organization) return
 
     setSaving(true)
+    setError('')
     setMessage('')
 
     try {
       const supabase = createClient()
-      
-      const { error } = await supabase
+
+      // Optional: Geocode address if provided
+      let lat: number | null = null
+      let lng: number | null = null
+
+      if (formData.address || formData.city || formData.province_state || formData.country) {
+        const addressString = [
+          formData.address,
+          formData.city,
+          formData.province_state,
+          formData.country
+        ].filter(Boolean).join(', ')
+
+        if (addressString.trim()) {
+          try {
+            const geoResp = await fetch('/api/geocode', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ address: addressString })
+            })
+            
+            if (geoResp.ok) {
+              const geoData = await geoResp.json()
+              if (geoData.lat !== null && geoData.lng !== null) {
+                lat = geoData.lat
+                lng = geoData.lng
+              }
+            }
+          } catch (geoErr) {
+            console.log('Geocoding failed, continuing without coordinates:', geoErr)
+          }
+        }
+      }
+
+      // Prepare update data
+      const updateData: any = {
+        name: formData.name,
+        address: formData.address || null,
+        city: formData.city || null,
+        province_state: formData.province_state || null,
+        country: formData.country || null,
+        postal_code: formData.postal_code || null,
+        contact_name: formData.contact_name || null,
+        contact_email: formData.contact_email || null,
+        contact_phone: formData.contact_phone || null,
+        website: formData.website || null,
+        facebook: formData.facebook || null,
+        instagram: formData.instagram || null,
+        twitter: formData.twitter || null,
+        donate_link: formData.donate_link || null,
+      }
+
+      // Add coordinates if we got them
+      if (lat !== null && lng !== null) {
+        updateData.latitude = lat
+        updateData.longitude = lng
+      }
+
+      // Update using client-side Supabase (respects RLS)
+      const { data, error } = await supabase
         .from('organizations')
-        .update({
-          display_name: formData.display_name,
-          bio: formData.bio,
-          city: formData.city,
-          country: formData.country,
-          website: formData.website,
-          email: formData.email,
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', organization.id)
+        .select()
 
       if (error) {
-        setMessage('Error updating profile. Please try again.')
-      } else {
-        setMessage('Profile updated successfully!')
-        setOrganization({ ...organization, ...formData })
-      }
-    } catch (error) {
-      setMessage('Error updating profile. Please try again.')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleFileUpload = async (file: File, type: 'logo' | 'banner') => {
-    if (!organization) return
-
-    const supabase = createClient()
-    const fileExt = file.name.split('.').pop()
-    const fileName = `${organization.id}/${type}.${fileExt}`
-
-    try {
-      // Upload file
-      const { error: uploadError } = await supabase.storage
-        .from('organization-assets')
-        .upload(fileName, file, { upsert: true })
-
-      if (uploadError) {
-        console.error('Upload error:', uploadError)
+        console.error('Supabase update error:', error)
+        setError(`Failed to update: ${error.message}`)
         return
       }
 
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('organization-assets')
-        .getPublicUrl(fileName)
-
-      // Update organization record
-      const updateField = type === 'logo' ? 'logo_url' : 'banner_url'
-      const { error: updateError } = await supabase
-        .from('organizations')
-        .update({ [updateField]: publicUrl })
-        .eq('id', organization.id)
-
-      if (!updateError) {
-        setOrganization({ ...organization, [updateField]: publicUrl })
-        setFormData({ ...formData, [updateField]: publicUrl })
+      if (!data || data.length === 0) {
+        setError('No organization was updated. Please check your permissions.')
+        return
       }
+
+      // Success!
+      setMessage('Organization profile updated successfully!')
+      setOrganization({ ...organization, ...updateData })
+      setIsEditMode(false) // Exit edit mode after successful save
+
     } catch (error) {
-      console.error('File upload error:', error)
+      console.error('Update error:', error)
+      setError('Failed to update organization. Please try again.')
+    } finally {
+      setSaving(false)
     }
+  }, [organization, formData])
+
+  const handleEdit = useCallback(() => {
+    setIsEditMode(true)
+    setMessage('')
+    setError('')
+  }, [])
+
+  const handleCancel = useCallback(() => {
+    if (!organization) return
+    resetFormData(organization)
+    setIsEditMode(false)
+    setMessage('')
+    setError('')
+  }, [organization, resetFormData])
+
+  if (loading) {
+    return <LoadingPage message="Loading organization profile..." />
   }
 
-  if (isLoading) {
-    return (
-      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
-            <div className="space-y-4">
-              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  if (!organization) {
-    return (
-      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-900">Organization not found</h2>
-          </div>
-        </div>
-      </div>
-    )
+  if (error && !organization) {
+    return <AccessPending message={error} />
   }
 
   return (
-    <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-      <div className="px-4 py-6 sm:px-0">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Organization Profile</h1>
-          <p className="mt-2 text-gray-600">
-            Update your organization's information and branding.
-          </p>
-        </div>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="bg-white rounded-lg shadow-lg">
+          <div className="px-6 py-8">
+            <Suspense fallback={<div className="h-16 animate-pulse bg-gray-200 rounded"></div>}>
+              <OrganizationProfileHeader
+                isEditMode={isEditMode}
+                isSaving={saving}
+                onEdit={handleEdit}
+                onCancel={handleCancel}
+                onSave={handleSave}
+              />
+            </Suspense>
 
-        {message && (
-          <div className={`mb-6 p-4 rounded-lg ${
-            message.includes('Error') 
-              ? 'bg-red-50 text-red-600 border border-red-200' 
-              : 'bg-green-50 text-green-600 border border-green-200'
-          }`}>
-            {message}
-          </div>
-        )}
+            <SuccessMessage message={message} className="mb-6" />
+            <ErrorMessage message={error} className="mb-6" />
 
-        <div className="bg-white shadow rounded-lg">
-          <div className="px-4 py-5 sm:p-6">
-            {/* Banner Upload */}
-            <div className="mb-8">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Banner Image</h3>
-              <div className="relative">
-                <div className="h-48 bg-gray-100 rounded-lg overflow-hidden">
-                  {organization.banner_url ? (
-                    <img 
-                      src={organization.banner_url} 
-                      alt="Organization banner"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <span className="text-gray-400">No banner image</span>
-                    </div>
-                  )}
-                </div>
-                <div className="absolute bottom-4 right-4">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (file) handleFileUpload(file, 'banner')
-                    }}
-                    className="hidden"
-                    id="banner-upload"
-                  />
-                  <label
-                    htmlFor="banner-upload"
-                    className="bg-white shadow-lg rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer border"
-                  >
-                    Upload Banner
-                  </label>
-                </div>
-              </div>
-            </div>
+            <Suspense fallback={<div className="space-y-6"><div className="h-20 animate-pulse bg-gray-200 rounded"></div><div className="h-20 animate-pulse bg-gray-200 rounded"></div><div className="h-20 animate-pulse bg-gray-200 rounded"></div></div>}>
+              <div className="space-y-6">
+                <EditableTextInput
+                id="name"
+                label="Organization Name"
+                value={formData.name}
+                onChange={(value) => updateFormData('name', value)}
+                placeholder="Your Organization Name"
+                required
+                isEditMode={isEditMode}
+              />
 
-            <form onSubmit={handleSubmit}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Logo Upload */}
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Logo</h3>
-                  <div className="flex items-center space-x-4">
-                    <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden">
-                      {organization.logo_url ? (
-                        <img 
-                          src={organization.logo_url} 
-                          alt="Organization logo"
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <span className="text-gray-400 text-xs">No logo</span>
-                        </div>
-                      )}
-                    </div>
-                    <div>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0]
-                          if (file) handleFileUpload(file, 'logo')
-                        }}
-                        className="hidden"
-                        id="logo-upload"
-                      />
-                      <label
-                        htmlFor="logo-upload"
-                        className="bg-white shadow border rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer"
-                      >
-                        Upload Logo
-                      </label>
-                    </div>
-                  </div>
-                </div>
+              <EditableTextInput
+                id="address"
+                label="Street Address"
+                value={formData.address}
+                onChange={(value) => updateFormData('address', value)}
+                placeholder="123 Main Street"
+                isEditMode={isEditMode}
+              />
 
-                {/* Organization Type */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Organization Type
-                  </label>
-                  <input
-                    type="text"
-                    value={organization.type}
-                    disabled
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500 capitalize"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Contact support to change organization type</p>
-                </div>
+              <div className="grid md:grid-cols-2 gap-6">
+                <EditableTextInput
+                  id="city"
+                  label="City"
+                  value={formData.city}
+                  onChange={(value) => updateFormData('city', value)}
+                  placeholder="Toronto"
+                  isEditMode={isEditMode}
+                />
+                <EditableTextInput
+                  id="province_state"
+                  label="Province/State"
+                  value={formData.province_state}
+                  onChange={(value) => updateFormData('province_state', value)}
+                  placeholder="Ontario"
+                  isEditMode={isEditMode}
+                />
               </div>
 
-              <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="display_name" className="block text-sm font-medium text-gray-700 mb-2">
-                    Display Name *
-                  </label>
-                  <input
-                    type="text"
-                    id="display_name"
-                    required
-                    value={formData.display_name || ''}
-                    onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                    Contact Email
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    value={formData.email || ''}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
+              <div className="grid md:grid-cols-2 gap-6">
+                <EditableTextInput
+                  id="country"
+                  label="Country"
+                  value={formData.country}
+                  onChange={(value) => updateFormData('country', value)}
+                  placeholder="Canada"
+                  isEditMode={isEditMode}
+                />
+                <EditableTextInput
+                  id="postal_code"
+                  label="Postal/ZIP Code"
+                  value={formData.postal_code}
+                  onChange={(value) => updateFormData('postal_code', value)}
+                  placeholder="L1T 1X5"
+                  isEditMode={isEditMode}
+                />
               </div>
 
-              <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-2">
-                    City
-                  </label>
-                  <input
-                    type="text"
-                    id="city"
-                    value={formData.city || ''}
-                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              <div className="border-t pt-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Contact Information</h3>
+                
+                <div className="grid md:grid-cols-2 gap-6">
+                  <EditableTextInput
+                    id="contact_name"
+                    label="Contact Person"
+                    value={formData.contact_name}
+                    onChange={(value) => updateFormData('contact_name', value)}
+                    placeholder="John Smith"
+                    isEditMode={isEditMode}
+                  />
+                  <EditableTextInput
+                    id="contact_phone"
+                    label="Phone Number"
+                    type="tel"
+                    value={formData.contact_phone}
+                    onChange={(value) => updateFormData('contact_phone', value)}
+                    placeholder="+1 (555) 123-4567"
+                    isEditMode={isEditMode}
                   />
                 </div>
 
-                <div>
-                  <label htmlFor="country" className="block text-sm font-medium text-gray-700 mb-2">
-                    Country
-                  </label>
-                  <input
-                    type="text"
-                    id="country"
-                    value={formData.country || ''}
-                    onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
+                <EditableTextInput
+                  id="contact_email"
+                  label="Contact Email"
+                  type="email"
+                  value={formData.contact_email}
+                  onChange={(value) => updateFormData('contact_email', value)}
+                  placeholder="contact@yourorganization.com"
+                  isEditMode={isEditMode}
+                  className="mt-6"
+                />
               </div>
 
-              <div className="mt-6">
-                <label htmlFor="website" className="block text-sm font-medium text-gray-700 mb-2">
-                  Website
-                </label>
-                <input
-                  type="url"
+              <div className="border-t pt-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Online Presence</h3>
+                
+                <EditableTextInput
                   id="website"
-                  value={formData.website || ''}
-                  onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  label="Website"
+                  type="url"
+                  value={formData.website}
+                  onChange={(value) => updateFormData('website', value)}
                   placeholder="https://yourorganization.com"
+                  isEditMode={isEditMode}
                 />
-              </div>
 
-              <div className="mt-6">
-                <label htmlFor="bio" className="block text-sm font-medium text-gray-700 mb-2">
-                  About Your Organization
-                </label>
-                <textarea
-                  id="bio"
-                  rows={4}
-                  value={formData.bio || ''}
-                  onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Tell the community about your organization..."
+                <EditableTextInput
+                  id="donate_link"
+                  label="Donation Link"
+                  type="url"
+                  value={formData.donate_link}
+                  onChange={(value) => updateFormData('donate_link', value)}
+                  placeholder="https://donate.yourorganization.com"
+                  isEditMode={isEditMode}
+                  className="mt-6"
                 />
-              </div>
 
-              <div className="mt-8 flex justify-end">
-                <button
-                  type="submit"
-                  disabled={isSaving}
-                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-semibold py-2 px-6 rounded-lg transition-colors"
-                >
-                  {isSaving ? 'Saving...' : 'Save Changes'}
-                </button>
+                <ReadOnlyLink
+                  id="prayer_times_url"
+                  label="Prayer Times Schedule"
+                  url={organization?.prayer_times_url}
+                  linkText="View Prayer Times"
+                  placeholder="No prayer times schedule uploaded"
+                  className="mt-6"
+                />
+
+                <div className="grid md:grid-cols-3 gap-6 mt-6">
+                  <EditableTextInput
+                    id="facebook"
+                    label="Facebook"
+                    type="url"
+                    value={formData.facebook}
+                    onChange={(value) => updateFormData('facebook', value)}
+                    placeholder="https://facebook.com/yourpage"
+                    isEditMode={isEditMode}
+                  />
+                  <EditableTextInput
+                    id="instagram"
+                    label="Instagram"
+                    type="url"
+                    value={formData.instagram}
+                    onChange={(value) => updateFormData('instagram', value)}
+                    placeholder="https://instagram.com/yourprofile"
+                    isEditMode={isEditMode}
+                  />
+                  <EditableTextInput
+                    id="twitter"
+                    label="Twitter"
+                    type="url"
+                    value={formData.twitter}
+                    onChange={(value) => updateFormData('twitter', value)}
+                    placeholder="https://twitter.com/yourprofile"
+                    isEditMode={isEditMode}
+                  />
+                </div>
               </div>
-            </form>
+              </div>
+            </Suspense>
           </div>
         </div>
       </div>

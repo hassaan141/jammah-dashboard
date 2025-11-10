@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "supabase": {
+      "command": "node",
+      "args": ["C:\\Users\\hassa\\AppData\\Roaming\\npm\\node_modules\\@supabase\\mcp-server-supabase\\dist\\index.js"],
+      "env": {
+        "SUPABASE_URL": "https://kjbutgbpddsadvnbgblg.supabase.co",
+        "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtqYnV0Z2JwZGRzYWR2bmJnYmxnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc3NjQ1NjMsImV4cCI6MjA1MzM0MDU2M30.giaKfNM-hUj2UCrC_ZBUjamv9vFkhP7TORF5xkzyL4Y"
+      }
+    }
+  }
+}

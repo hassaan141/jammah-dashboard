@@ -4,35 +4,42 @@ import Link from 'next/link'
 export default async function AdminDashboardPage() {
   const supabase = await createClient()
 
-  // Get application statistics
-  const { data: applications, error: appsError } = await supabase
-    .from('organization_applications')
-    .select('id, application_status, created_at')
+  // Optimize: Use Promise.all for parallel queries and limit data
+  const [
+    { data: applications, error: appsError },
+    { data: organizations, error: orgsError },
+    { data: recentApplications, error: recentError }
+  ] = await Promise.all([
+    // Only get required fields for statistics
+    supabase
+      .from('organization_applications')
+      .select('id, application_status, created_at')
+      .order('created_at', { ascending: false }),
+    
+    // Only count organizations
+    supabase
+      .from('organizations')
+      .select('id, created_at', { count: 'exact' })
+      .limit(1),
+    
+    // Get recent applications with limit
+    supabase
+      .from('organization_applications')
+      .select('id, organization_name, organization_type, contact_name, contact_email, application_status, created_at, updated_at')
+      .order('created_at', { ascending: false })
+      .limit(10)
+  ])
 
-  // Debug logging
-  console.log('Applications data:', applications)
-  console.log('Applications error:', appsError)
+  // Handle errors
+  if (appsError) console.error('Applications error:', appsError)
+  if (orgsError) console.error('Organizations error:', orgsError)
+  if (recentError) console.error('Recent applications error:', recentError)
 
-  const { data: organizations, error: orgsError } = await supabase
-    .from('organizations')
-    .select('id, created_at')
-
-  console.log('Organizations data:', organizations)
-  console.log('Organizations error:', orgsError)
-
+  // Calculate statistics efficiently
   const pendingApplications = applications?.filter(app => app.application_status === 'submitted').length || 0
   const totalApplications = applications?.length || 0
-  const verifiedOrganizations = organizations?.length || 0  // All orgs in the table are verified by default
+  const verifiedOrganizations = organizations?.length || 0
   const totalOrganizations = organizations?.length || 0
-
-  // Get recent applications for quick review
-  const { data: recentApplications, error: recentError } = await supabase
-    .from('organization_applications')
-    .select('*')
-
-
-  console.log('Recent applications:', recentApplications)
-  console.log('Recent applications error:', recentError)
 
   return (
     <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">

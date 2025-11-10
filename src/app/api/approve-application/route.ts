@@ -160,6 +160,30 @@ export async function POST(request: NextRequest) {
 
     // Update the profile row for the user
     try {
+      // Ensure there's at least one daily_prayer_times row for this organization for today.
+      // Use YYYY-MM-DD date (UTC) to match the table's DATE column.
+      try {
+        const today = new Date().toISOString().slice(0, 10)
+        if (orgId) {
+          try {
+            const payload = { organization_id: orgId, prayer_date: today }
+            const { data: dptData, error: dptError } = await supabaseAdmin
+              .from('daily_prayer_times')
+              .upsert([payload], { onConflict: 'organization_id,prayer_date' })
+              .select('id')
+              .maybeSingle()
+
+            if (dptError) {
+              console.error('daily_prayer_times upsert warning:', dptError)
+            }
+          } catch (dptErr) {
+            console.error('Unexpected error upserting daily_prayer_times:', dptErr)
+          }
+        }
+      } catch (dptErr) {
+        console.error('Unexpected error inserting daily_prayer_times:', dptErr)
+      }
+
       const { error: profileError } = await supabaseAdmin
         .from('profiles')
         .update({ is_org: true, org_id: orgId, updated_at: new Date().toISOString() })

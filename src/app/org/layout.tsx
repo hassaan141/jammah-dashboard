@@ -19,17 +19,14 @@ export default async function OrgLayout({
     redirect('/reset-password')
   }
 
-  // Check if user has an approved organization
-  const { data: orgAdmin } = await supabase
-    .from('organization_admins')
-    .select(`
-      *,
-      organization:organizations(*)
-    `)
-    .eq('user_id', user.id)
+  // Get user profile to check organization access
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('is_org, org_id')
+    .eq('id', user.id)
     .single()
 
-  if (!orgAdmin || !orgAdmin.organization || !(orgAdmin.organization as any).verified) {
+  if (!profile?.is_org || !profile?.org_id) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="bg-white rounded-lg shadow-lg p-8 max-w-md text-center">
@@ -37,7 +34,7 @@ export default async function OrgLayout({
           <p className="text-gray-600 mb-6">
             Your organization application is still being reviewed. You'll receive an email once it's approved.
           </p>
-          <form action="/api/auth/signout" method="post">
+          <form action="/auth/signout" method="post">
             <button
               type="submit"
               className="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg"
@@ -50,11 +47,18 @@ export default async function OrgLayout({
     )
   }
 
+  // Get organization details
+  const { data: organization } = await supabase
+    .from('organizations')
+    .select('*')
+    .eq('id', profile.org_id)
+    .single()
+
   return (
     <div className="min-h-screen bg-gray-50">
       <OrgNavigation 
         user={user} 
-        organization={orgAdmin.organization}
+        organization={organization}
       />
       <main>{children}</main>
     </div>
