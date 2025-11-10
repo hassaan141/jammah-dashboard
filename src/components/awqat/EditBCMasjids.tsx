@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import DeleteConfirmationModal from '@/components/shared/DeleteConfirmationModal'
 
 interface Masjid {
   id: string
@@ -17,6 +18,7 @@ interface Masjid {
   contact_phone?: string
   website?: string
   prayer_times_url?: string
+  is_active?: boolean
 }
 
 export default function EditBCMasjids() {
@@ -24,6 +26,15 @@ export default function EditBCMasjids() {
   const [filteredMasjids, setFilteredMasjids] = useState<Masjid[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [isLoading, setIsLoading] = useState(true)
+  
+  // Delete modal state
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean
+    masjid: Masjid | null
+  }>({ isOpen: false, masjid: null })
+  
+  // Loading states for toggles
+  const [toggleLoading, setToggleLoading] = useState<Set<string>>(new Set())
 
   const supabase = createClient()
 
@@ -69,6 +80,72 @@ export default function EditBCMasjids() {
     }
   }, [searchTerm, masjids])
 
+  // Handle delete masjid
+  const handleDelete = async (masjidId: string) => {
+    try {
+      const { error } = await supabase
+        .from('organizations')
+        .delete()
+        .eq('id', masjidId)
+
+      if (error) throw error
+
+      // Update local state
+      const updatedMasjids = masjids.filter(m => m.id !== masjidId)
+      setMasjids(updatedMasjids)
+      setFilteredMasjids(updatedMasjids.filter(masjid =>
+        masjid.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (masjid.city && masjid.city.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (masjid.contact_email && masjid.contact_email.toLowerCase().includes(searchTerm.toLowerCase()))
+      ))
+
+      // Close modal
+      setDeleteModal({ isOpen: false, masjid: null })
+      
+      alert('Masjid deleted successfully!')
+    } catch (error) {
+      console.error('Error deleting masjid:', error)
+      alert('Error deleting masjid. Please try again.')
+    }
+  }
+
+  // Handle toggle active status
+  const handleToggleActive = async (masjid: Masjid) => {
+    setToggleLoading(prev => new Set(prev).add(masjid.id))
+    
+    try {
+      const newActiveStatus = !masjid.is_active
+      
+      const { error } = await supabase
+        .from('organizations')
+        .update({ is_active: newActiveStatus })
+        .eq('id', masjid.id)
+
+      if (error) throw error
+
+      // Update local state
+      const updatedMasjids = masjids.map(m =>
+        m.id === masjid.id ? { ...m, is_active: newActiveStatus } : m
+      )
+      setMasjids(updatedMasjids)
+      setFilteredMasjids(updatedMasjids.filter(masjid =>
+        masjid.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (masjid.city && masjid.city.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (masjid.contact_email && masjid.contact_email.toLowerCase().includes(searchTerm.toLowerCase()))
+      ))
+
+    } catch (error) {
+      console.error('Error toggling masjid status:', error)
+      alert('Error updating masjid status. Please try again.')
+    } finally {
+      setToggleLoading(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(masjid.id)
+        return newSet
+      })
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="bg-white p-6 rounded-lg shadow-md">
@@ -101,18 +178,49 @@ export default function EditBCMasjids() {
           {filteredMasjids.map((masjid) => (
             <div key={masjid.id} className="border border-gray-200 rounded-lg p-4">
               <div className="flex justify-between items-start mb-3">
-                <div>
-                  <h3 className="text-lg font-semibold text-black">{masjid.name}</h3>
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    <h3 className="text-lg font-semibold text-black">{masjid.name}</h3>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      masjid.is_active !== false ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    }`}>
+                      {masjid.is_active !== false ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
                   {masjid.description && (
                     <p className="text-sm text-gray-600 mt-1">{masjid.description}</p>
                   )}
                 </div>
-                <Link
-                  href={`/awqat/edit/${masjid.id}`}
-                  className="bg-blue-600 text-white px-3 py-1 rounded-md hover:bg-blue-700 text-sm"
-                >
-                  Edit
-                </Link>
+                <div className="flex items-center gap-2">
+                  {/* Toggle Active/Inactive */}
+                  <button
+                    onClick={() => handleToggleActive(masjid)}
+                    disabled={toggleLoading.has(masjid.id)}
+                    className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                      masjid.is_active !== false
+                        ? 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                        : 'bg-green-100 text-green-700 hover:bg-green-200'
+                    } ${toggleLoading.has(masjid.id) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    {toggleLoading.has(masjid.id) ? '...' : (masjid.is_active !== false ? 'Disable' : 'Enable')}
+                  </button>
+                  
+                  {/* Edit Button */}
+                  <Link
+                    href={`/awqat/edit/${masjid.id}`}
+                    className="bg-blue-600 text-white px-3 py-1 rounded-md hover:bg-blue-700 text-sm"
+                  >
+                    Edit
+                  </Link>
+                  
+                  {/* Delete Button */}
+                  <button
+                    onClick={() => setDeleteModal({ isOpen: true, masjid })}
+                    className="bg-red-600 text-white px-3 py-1 rounded-md hover:bg-red-700 text-sm"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-black">
@@ -162,6 +270,15 @@ export default function EditBCMasjids() {
           ))}
         </div>
       )}
+      
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, masjid: null })}
+        onConfirm={() => deleteModal.masjid && handleDelete(deleteModal.masjid.id)}
+        itemName={deleteModal.masjid?.name || ''}
+        itemType="masjid"
+      />
     </div>
   )
 }

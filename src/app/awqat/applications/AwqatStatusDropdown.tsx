@@ -25,7 +25,33 @@ export default function AwqatStatusDropdown({ applicationId, currentStatus, orga
       // For approval, create organization record and update application status
       if (newStatus === 'approved') {
         try {
-          // First, create the organization record
+          // First, geocode the address to get coordinates
+          let latitude = null
+          let longitude = null
+          
+          if (organizationData.address && organizationData.city && organizationData.province_state) {
+            const fullAddress = `${organizationData.address}, ${organizationData.city}, ${organizationData.province_state}, ${organizationData.country || 'Canada'}`
+            
+            try {
+              const geocodeResponse = await fetch('/api/geocode', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ address: fullAddress })
+              })
+              
+              if (geocodeResponse.ok) {
+                const geocodeData = await geocodeResponse.json()
+                if (geocodeData.lat && geocodeData.lng) {
+                  latitude = geocodeData.lat
+                  longitude = geocodeData.lng
+                }
+              }
+            } catch (geocodeError) {
+              console.warn('Geocoding failed, creating organization without location:', geocodeError)
+            }
+          }
+
+          // Create the organization record with calculated coordinates
           const { error: orgError } = await supabase
             .from('organizations')
             .insert({
@@ -45,7 +71,9 @@ export default function AwqatStatusDropdown({ applicationId, currentStatus, orga
               facebook: organizationData.facebook || null,
               instagram: organizationData.instagram || null,
               twitter: organizationData.twitter || null,
-              prayer_times_url: organizationData.prayer_times_url || null
+              prayer_times_url: organizationData.prayer_times_url || null,
+              latitude: latitude,
+              longitude: longitude
             })
 
           if (orgError) {

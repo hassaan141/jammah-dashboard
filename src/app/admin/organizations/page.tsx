@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import SearchBar from '@/components/forms/SearchBar'
+import DeleteConfirmationModal from '@/components/shared/DeleteConfirmationModal'
 
 interface Organization {
   id: string
@@ -16,6 +17,7 @@ interface Organization {
   contact_email?: string
   contact_phone?: string
   website?: string
+  is_active?: boolean
   created_at?: string
 }
 
@@ -24,6 +26,15 @@ export default function AdminOrganizationsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
+  
+  // Delete modal state
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean
+    organization: Organization | null
+  }>({ isOpen: false, organization: null })
+  
+  // Loading states for toggles
+  const [toggleLoading, setToggleLoading] = useState<Set<string>>(new Set())
 
   // Filter organizations based on search query
   const filteredOrganizations = useMemo(() => {
@@ -49,7 +60,7 @@ export default function AdminOrganizationsPage() {
         // Optimize: Only select necessary fields and limit initial load
         const { data: orgData, error: orgError } = await supabase
           .from('organizations')
-          .select('id, name, address, city, province_state, country, contact_name, contact_email, contact_phone, website, created_at')
+          .select('id, name, address, city, province_state, country, contact_name, contact_email, contact_phone, website, is_active, created_at')
           .order('created_at', { ascending: false })
           .limit(100) // Limit to 100 organizations for better performance
 
@@ -97,6 +108,64 @@ export default function AdminOrganizationsPage() {
 
     loadOrganizations()
   }, [])
+
+  // Handle delete organization
+  const handleDelete = async (organizationId: string) => {
+    try {
+      const supabase = createClient()
+      const { error } = await supabase
+        .from('organizations')
+        .delete()
+        .eq('id', organizationId)
+
+      if (error) throw error
+
+      // Update local state
+      const updatedOrganizations = organizations.filter(org => org.id !== organizationId)
+      setOrganizations(updatedOrganizations)
+
+      // Close modal
+      setDeleteModal({ isOpen: false, organization: null })
+      
+      alert('Organization deleted successfully!')
+    } catch (error) {
+      console.error('Error deleting organization:', error)
+      alert('Error deleting organization. Please try again.')
+    }
+  }
+
+  // Handle toggle active status
+  const handleToggleActive = async (organization: Organization) => {
+    setToggleLoading(prev => new Set(prev).add(organization.id))
+    
+    try {
+      const supabase = createClient()
+      const newActiveStatus = !organization.is_active
+      
+      const { error } = await supabase
+        .from('organizations')
+        .update({ is_active: newActiveStatus })
+        .eq('id', organization.id)
+
+      if (error) throw error
+
+      // Update local state
+      const updatedOrganizations = organizations.map(org =>
+        org.id === organization.id ? { ...org, is_active: newActiveStatus } : org
+      )
+      setOrganizations(updatedOrganizations)
+
+    } catch (error) {
+      console.error('Error toggling organization status:', error)
+      alert('Error updating organization status. Please try again.')
+    } finally {
+      setToggleLoading(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(organization.id)
+        return newSet
+      })
+    }
+  }
 
   if (loading) {
     return (
@@ -195,9 +264,16 @@ export default function AdminOrganizationsPage() {
                 <div className="px-6 py-4">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
-                      <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                        {org.name}
-                      </h3>
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="text-xl font-semibold text-gray-900">
+                          {org.name}
+                        </h3>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          org.is_active !== false ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        }`}>
+                          {org.is_active !== false ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
                       
                       <div className="grid md:grid-cols-2 gap-4 mb-4">
                         <div>
@@ -232,13 +308,35 @@ export default function AdminOrganizationsPage() {
                       </div>
                     </div>
 
-                    <div className="ml-6 flex-shrink-0">
+                    <div className="ml-6 flex-shrink-0 flex items-center gap-2">
+                      {/* Toggle Active/Inactive */}
+                      <button
+                        onClick={() => handleToggleActive(org)}
+                        disabled={toggleLoading.has(org.id)}
+                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          org.is_active !== false
+                            ? 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                            : 'bg-green-100 text-green-700 hover:bg-green-200'
+                        } ${toggleLoading.has(org.id) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      >
+                        {toggleLoading.has(org.id) ? '...' : (org.is_active !== false ? 'Disable' : 'Enable')}
+                      </button>
+                      
+                      {/* Edit Button */}
                       <Link
                         href={`/admin/edit/${org.id}`}
                         className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
                       >
-                        Edit Organization
+                        Edit
                       </Link>
+                      
+                      {/* Delete Button */}
+                      <button
+                        onClick={() => setDeleteModal({ isOpen: true, organization: org })}
+                        className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+                      >
+                        Delete
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -246,6 +344,15 @@ export default function AdminOrganizationsPage() {
             ))}
           </div>
         )}
+        
+        {/* Delete Confirmation Modal */}
+        <DeleteConfirmationModal
+          isOpen={deleteModal.isOpen}
+          onClose={() => setDeleteModal({ isOpen: false, organization: null })}
+          onConfirm={() => deleteModal.organization && handleDelete(deleteModal.organization.id)}
+          itemName={deleteModal.organization?.name || ''}
+          itemType="organization"
+        />
       </div>
     </div>
   )
