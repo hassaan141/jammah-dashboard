@@ -1,253 +1,449 @@
-import { createClient } from '@/lib/supabase/server'
-import Link from 'next/link'
+'use client'
 
-export default async function OrgOverviewPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import { useRouter } from 'next/navigation'
 
-  if (!user) return null
+import LoadingPage from '@/components/ui/LoadingPage'
+import ErrorMessage from '@/components/ui/ErrorMessage'
+import SuccessMessage from '@/components/ui/SuccessMessage'
 
-  // Get organization and recent events
-  const { data: orgAdmin } = await supabase
-    .from('organization_admins')
-    .select(`
-      *,
-      organization:organizations(*)
-    `)
-    .eq('user_id', user.id)
-    .single()
+// Lazy load form components
+const EditableTextInput = lazy(() => import('@/components/forms/EditableTextInput'))
+const ReadOnlyLink = lazy(() => import('@/components/forms/ReadOnlyLink'))
+const OrganizationProfileHeader = lazy(() => import('@/components/org/OrganizationProfileHeader'))
+const AccessPending = lazy(() => import('@/components/org/AccessPending'))
 
-  const { data: recentEvents } = await supabase
-    .from('events')
-    .select('*')
-    .eq('organization_id', (orgAdmin?.organization as any)?.id)
-    .order('created_at', { ascending: false })
-    .limit(5)
+interface Organization {
+  id: string
+  name: string
+  address?: string
+  city?: string
+  province_state?: string
+  country?: string
+  postal_code?: string
+  contact_name?: string
+  contact_email?: string
+  contact_phone?: string
+  website?: string
+  facebook?: string
+  instagram?: string
+  twitter?: string
+  donate_link?: string
+  prayer_times_url?: string
+  latitude?: number
+  longitude?: number
+}
 
-  const organization = orgAdmin?.organization as any
+interface FormData {
+  name: string
+  address: string
+  city: string
+  province_state: string
+  country: string
+  postal_code: string
+  contact_name: string
+  contact_email: string
+  contact_phone: string
+  website: string
+  facebook: string
+  instagram: string
+  twitter: string
+  donate_link: string
+}
 
-  if (!organization) return null
+export default function OrgProfilePage() {
+  const [organization, setOrganization] = useState<Organization | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [isEditMode, setIsEditMode] = useState(false)
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+  const router = useRouter()
+
+  const [formData, setFormData] = useState<FormData>({
+    name: '',
+    address: '',
+    city: '',
+    province_state: '',
+    country: '',
+    postal_code: '',
+    contact_name: '',
+    contact_email: '',
+    contact_phone: '',
+    website: '',
+    facebook: '',
+    instagram: '',
+    twitter: '',
+    donate_link: ''
+  })
+
+  const updateFormData = useCallback((field: keyof FormData, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+  }, [])
+
+  const resetFormData = useCallback((org: Organization) => {
+    setFormData({
+      name: org.name || '',
+      address: org.address || '',
+      city: org.city || '',
+      province_state: org.province_state || '',
+      country: org.country || '',
+      postal_code: org.postal_code || '',
+      contact_name: org.contact_name || '',
+      contact_email: org.contact_email || '',
+      contact_phone: org.contact_phone || '',
+      website: org.website || '',
+      facebook: org.facebook || '',
+      instagram: org.instagram || '',
+      twitter: org.twitter || '',
+      donate_link: org.donate_link || ''
+    })
+  }, [])
+
+  useEffect(() => {
+    async function loadOrganization() {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+
+      if (!user) {
+        router.push('/signin')
+        return
+      }
+
+      // Get user profile to find their org_id
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_org, org_id')
+        .eq('id', user.id)
+        .single()
+
+      if (!profile?.is_org || !profile?.org_id) {
+        setError('Your organization application is still being reviewed.')
+        setLoading(false)
+        return
+      }
+
+      // Get organization details
+      const { data: org, error: orgError } = await supabase
+        .from('organizations')
+        .select('*')
+        .eq('id', profile.org_id)
+        .single()
+
+      if (orgError || !org) {
+        setError('Failed to load organization details.')
+        setLoading(false)
+        return
+      }
+
+      setOrganization(org)
+      resetFormData(org)
+      setLoading(false)
+    }
+
+    loadOrganization()
+  }, [router])
+
+  const handleSave = useCallback(async () => {
+    if (!organization) return
+
+    setSaving(true)
+    setError('')
+    setMessage('')
+
+    try {
+      const supabase = createClient()
+
+      // Optional: Geocode address if provided
+      let lat: number | null = null
+      let lng: number | null = null
+
+      if (formData.address || formData.city || formData.province_state || formData.country) {
+        const addressString = [
+          formData.address,
+          formData.city,
+          formData.province_state,
+          formData.country
+        ].filter(Boolean).join(', ')
+
+        if (addressString.trim()) {
+          try {
+            const geoResp = await fetch('/api/geocode', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ address: addressString })
+            })
+            
+            if (geoResp.ok) {
+              const geoData = await geoResp.json()
+              if (geoData.lat !== null && geoData.lng !== null) {
+                lat = geoData.lat
+                lng = geoData.lng
+              }
+            }
+          } catch (geoErr) {
+            console.log('Geocoding failed, continuing without coordinates:', geoErr)
+          }
+        }
+      }
+
+      // Prepare update data
+      const updateData: any = {
+        name: formData.name,
+        address: formData.address || null,
+        city: formData.city || null,
+        province_state: formData.province_state || null,
+        country: formData.country || null,
+        postal_code: formData.postal_code || null,
+        contact_name: formData.contact_name || null,
+        contact_email: formData.contact_email || null,
+        contact_phone: formData.contact_phone || null,
+        website: formData.website || null,
+        facebook: formData.facebook || null,
+        instagram: formData.instagram || null,
+        twitter: formData.twitter || null,
+        donate_link: formData.donate_link || null,
+      }
+
+      // Add coordinates if we got them
+      if (lat !== null && lng !== null) {
+        updateData.latitude = lat
+        updateData.longitude = lng
+      }
+
+      // Update using client-side Supabase (respects RLS)
+      const { data, error } = await supabase
+        .from('organizations')
+        .update(updateData)
+        .eq('id', organization.id)
+        .select()
+
+      if (error) {
+        console.error('Supabase update error:', error)
+        setError(`Failed to update: ${error.message}`)
+        return
+      }
+
+      if (!data || data.length === 0) {
+        setError('No organization was updated. Please check your permissions.')
+        return
+      }
+
+      // Success!
+      setMessage('Organization profile updated successfully!')
+      setOrganization({ ...organization, ...updateData })
+      setIsEditMode(false) // Exit edit mode after successful save
+
+    } catch (error) {
+      console.error('Update error:', error)
+      setError('Failed to update organization. Please try again.')
+    } finally {
+      setSaving(false)
+    }
+  }, [organization, formData])
+
+  const handleEdit = useCallback(() => {
+    setIsEditMode(true)
+    setMessage('')
+    setError('')
+  }, [])
+
+  const handleCancel = useCallback(() => {
+    if (!organization) return
+    resetFormData(organization)
+    setIsEditMode(false)
+    setMessage('')
+    setError('')
+  }, [organization, resetFormData])
+
+  if (loading) {
+    return <LoadingPage message="Loading organization profile..." />
+  }
+
+  if (error && !organization) {
+    return <AccessPending message={error} />
+  }
 
   return (
-    <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-      <div className="px-4 py-6 sm:px-0">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard Overview</h1>
-          <p className="mt-2 text-gray-600">
-            Welcome back! Here's what's happening with your organization.
-          </p>
-        </div>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="bg-white rounded-lg shadow-lg">
+          <div className="px-6 py-8">
+            <Suspense fallback={<div className="h-16 animate-pulse bg-gray-200 rounded"></div>}>
+              <OrganizationProfileHeader
+                isEditMode={isEditMode}
+                isSaving={saving}
+                onEdit={handleEdit}
+                onCancel={handleCancel}
+                onSave={handleSave}
+              />
+            </Suspense>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">
-                      Total Events
-                    </dt>
-                    <dd className="text-lg font-medium text-gray-900">
-                      {recentEvents?.length || 0}
-                    </dd>
-                  </dl>
-                </div>
-              </div>
-            </div>
-          </div>
+            <SuccessMessage message={message} className="mb-6" />
+            <ErrorMessage message={error} className="mb-6" />
 
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">
-                      Published Events
-                    </dt>
-                    <dd className="text-lg font-medium text-gray-900">
-                      {recentEvents?.filter(e => e.status === 'published').length || 0}
-                    </dd>
-                  </dl>
-                </div>
-              </div>
-            </div>
-          </div>
+            <Suspense fallback={<div className="space-y-6"><div className="h-20 animate-pulse bg-gray-200 rounded"></div><div className="h-20 animate-pulse bg-gray-200 rounded"></div><div className="h-20 animate-pulse bg-gray-200 rounded"></div></div>}>
+              <div className="space-y-6">
+                <EditableTextInput
+                id="name"
+                label="Organization Name"
+                value={formData.name}
+                onChange={(value) => updateFormData('name', value)}
+                placeholder="Your Organization Name"
+                required
+                isEditMode={isEditMode}
+              />
 
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
-                    <svg className="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">
-                      Draft Events
-                    </dt>
-                    <dd className="text-lg font-medium text-gray-900">
-                      {recentEvents?.filter(e => e.status === 'draft').length || 0}
-                    </dd>
-                  </dl>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+              <EditableTextInput
+                id="address"
+                label="Street Address"
+                value={formData.address}
+                onChange={(value) => updateFormData('address', value)}
+                placeholder="123 Main Street"
+                isEditMode={isEditMode}
+              />
 
-        {/* Recent Events */}
-        <div className="bg-white shadow rounded-lg">
-          <div className="px-4 py-5 sm:p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg leading-6 font-medium text-gray-900">
-                Recent Events
-              </h3>
-              <Link
-                href="/org/events"
-                className="text-blue-600 hover:text-blue-800 font-medium text-sm"
-              >
-                View all →
-              </Link>
-            </div>
-            
-            {recentEvents && recentEvents.length > 0 ? (
-              <div className="space-y-4">
-                {recentEvents.map((event: any) => (
-                  <div key={event.id} className="border border-gray-200 rounded-lg p-4">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <h4 className="text-lg font-medium text-gray-900">{event.title}</h4>
-                        <p className="text-gray-600 mt-1 line-clamp-2">{event.description}</p>
-                        <div className="mt-2 flex items-center space-x-4 text-sm text-gray-500">
-                          <span>📅 {new Date(event.start_time).toLocaleDateString()}</span>
-                          <span>📍 {event.venue}</span>
-                        </div>
-                      </div>
-                      <div className="ml-4 flex-shrink-0">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          event.status === 'published' 
-                            ? 'bg-green-100 text-green-800'
-                            : event.status === 'draft'
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : 'bg-gray-100 text-gray-800'
-                        }`}>
-                          {event.status}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+              <div className="grid md:grid-cols-2 gap-6">
+                <EditableTextInput
+                  id="city"
+                  label="City"
+                  value={formData.city}
+                  onChange={(value) => updateFormData('city', value)}
+                  placeholder="Toronto"
+                  isEditMode={isEditMode}
+                />
+                <EditableTextInput
+                  id="province_state"
+                  label="Province/State"
+                  value={formData.province_state}
+                  onChange={(value) => updateFormData('province_state', value)}
+                  placeholder="Ontario"
+                  isEditMode={isEditMode}
+                />
               </div>
-            ) : (
-              <div className="text-center py-8">
-                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No events yet</h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  Get started by creating your first event.
-                </p>
-                <div className="mt-6">
-                  <Link
-                    href="/org/events/new"
-                    className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-                  >
-                    Create Event
-                  </Link>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
 
-        {/* Quick Actions */}
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white shadow rounded-lg p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
-            <div className="space-y-3">
-              <Link
-                href="/org/events/new"
-                className="block w-full text-left px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex items-center">
-                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-                    <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                  </div>
-                  <div>
-                    <div className="font-medium">Create New Event</div>
-                    <div className="text-sm text-gray-500">Add an upcoming event or announcement</div>
-                  </div>
-                </div>
-              </Link>
-              
-              <Link
-                href="/org/profile"
-                className="block w-full text-left px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex items-center">
-                  <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3">
-                    <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <div className="font-medium">Update Profile</div>
-                    <div className="text-sm text-gray-500">Manage your organization information</div>
-                  </div>
-                </div>
-              </Link>
-            </div>
-          </div>
+              <div className="grid md:grid-cols-2 gap-6">
+                <EditableTextInput
+                  id="country"
+                  label="Country"
+                  value={formData.country}
+                  onChange={(value) => updateFormData('country', value)}
+                  placeholder="Canada"
+                  isEditMode={isEditMode}
+                />
+                <EditableTextInput
+                  id="postal_code"
+                  label="Postal/ZIP Code"
+                  value={formData.postal_code}
+                  onChange={(value) => updateFormData('postal_code', value)}
+                  placeholder="L1T 1X5"
+                  isEditMode={isEditMode}
+                />
+              </div>
 
-          <div className="bg-white shadow rounded-lg p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Organization Info</h3>
-            <div className="space-y-3">
-              <div>
-                <dt className="text-sm font-medium text-gray-500">Name</dt>
-                <dd className="mt-1 text-sm text-gray-900">{organization.display_name}</dd>
-              </div>
-              <div>
-                <dt className="text-sm font-medium text-gray-500">Type</dt>
-                <dd className="mt-1 text-sm text-gray-900 capitalize">{organization.type}</dd>
-              </div>
-              <div>
-                <dt className="text-sm font-medium text-gray-500">Status</dt>
-                <dd className="mt-1">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                    Verified
-                  </span>
-                </dd>
-              </div>
-              {organization.city && (
-                <div>
-                  <dt className="text-sm font-medium text-gray-500">Location</dt>
-                  <dd className="mt-1 text-sm text-gray-900">
-                    {organization.city}{organization.country && `, ${organization.country}`}
-                  </dd>
+              <div className="border-t pt-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Contact Information</h3>
+                
+                <div className="grid md:grid-cols-2 gap-6">
+                  <EditableTextInput
+                    id="contact_name"
+                    label="Contact Person"
+                    value={formData.contact_name}
+                    onChange={(value) => updateFormData('contact_name', value)}
+                    placeholder="John Smith"
+                    isEditMode={isEditMode}
+                  />
+                  <EditableTextInput
+                    id="contact_phone"
+                    label="Phone Number"
+                    type="tel"
+                    value={formData.contact_phone}
+                    onChange={(value) => updateFormData('contact_phone', value)}
+                    placeholder="+1 (555) 123-4567"
+                    isEditMode={isEditMode}
+                  />
                 </div>
-              )}
-            </div>
+
+                <EditableTextInput
+                  id="contact_email"
+                  label="Contact Email"
+                  type="email"
+                  value={formData.contact_email}
+                  onChange={(value) => updateFormData('contact_email', value)}
+                  placeholder="contact@yourorganization.com"
+                  isEditMode={isEditMode}
+                  className="mt-6"
+                />
+              </div>
+
+              <div className="border-t pt-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Online Presence</h3>
+                
+                <EditableTextInput
+                  id="website"
+                  label="Website"
+                  type="url"
+                  value={formData.website}
+                  onChange={(value) => updateFormData('website', value)}
+                  placeholder="https://yourorganization.com"
+                  isEditMode={isEditMode}
+                />
+
+                <EditableTextInput
+                  id="donate_link"
+                  label="Donation Link"
+                  type="url"
+                  value={formData.donate_link}
+                  onChange={(value) => updateFormData('donate_link', value)}
+                  placeholder="https://donate.yourorganization.com"
+                  isEditMode={isEditMode}
+                  className="mt-6"
+                />
+
+                <ReadOnlyLink
+                  id="prayer_times_url"
+                  label="Prayer Times Schedule"
+                  url={organization?.prayer_times_url}
+                  linkText="View Prayer Times"
+                  placeholder="No prayer times schedule uploaded"
+                  className="mt-6"
+                />
+
+                <div className="grid md:grid-cols-3 gap-6 mt-6">
+                  <EditableTextInput
+                    id="facebook"
+                    label="Facebook"
+                    type="url"
+                    value={formData.facebook}
+                    onChange={(value) => updateFormData('facebook', value)}
+                    placeholder="https://facebook.com/yourpage"
+                    isEditMode={isEditMode}
+                  />
+                  <EditableTextInput
+                    id="instagram"
+                    label="Instagram"
+                    type="url"
+                    value={formData.instagram}
+                    onChange={(value) => updateFormData('instagram', value)}
+                    placeholder="https://instagram.com/yourprofile"
+                    isEditMode={isEditMode}
+                  />
+                  <EditableTextInput
+                    id="twitter"
+                    label="Twitter"
+                    type="url"
+                    value={formData.twitter}
+                    onChange={(value) => updateFormData('twitter', value)}
+                    placeholder="https://twitter.com/yourprofile"
+                    isEditMode={isEditMode}
+                  />
+                </div>
+              </div>
+              </div>
+            </Suspense>
           </div>
         </div>
       </div>

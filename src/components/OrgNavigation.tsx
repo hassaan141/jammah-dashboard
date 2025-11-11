@@ -31,8 +31,7 @@ export default function OrgNavigation({ user, organization }: OrgNavigationProps
   }
 
   const navItems = [
-    { href: '/org', label: 'Overview', exact: true },
-    { href: '/org/profile', label: 'Profile' },
+    { href: '/org', label: 'Profile', exact: true },
     { href: '/org/events', label: 'Events' },
   ]
 
