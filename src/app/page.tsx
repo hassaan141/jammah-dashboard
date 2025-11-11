@@ -51,13 +51,15 @@ export default async function HomePage() {
             </div>
             
             <h1 className="text-5xl md:text-7xl font-bold text-gray-900 mb-6 leading-tight">
-              Jammah
-              <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent"> Dashboard</span>
+              {user ? 'Welcome to' : 'Jammah'}
+              <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent"> {user ? 'Your Dashboard' : 'Dashboard'}</span>
             </h1>
             
             <p className="text-xl md:text-2xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">
-              Empowering Muslim communities with modern management tools. 
-              Connect, organize, and grow your congregation with ease.
+              {user 
+                ? 'Manage your organization, engage with your community, and grow your congregation with powerful tools designed for Muslim communities.' 
+                : 'Empowering Muslim communities with modern management tools. Connect, organize, and grow your congregation with ease.'
+              }
             </p>
 
             {user && (
@@ -75,9 +77,11 @@ export default async function HomePage() {
                   <Link href="/admin" className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg">
                     Go to Dashboard
                   </Link>
-                  <Link href="/signin" className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-3 rounded-xl font-semibold transition-colors">
-                    Sign Out
-                  </Link>
+                  <form action="/auth/signout" method="post" className="inline">
+                    <button type="submit" className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-3 rounded-xl font-semibold transition-colors">
+                      Sign Out
+                    </button>
+                  </form>
                 </div>
               </div>
             )}
@@ -131,20 +135,44 @@ export default async function HomePage() {
                   Join hundreds of Muslim organizations already using Jammah Dashboard to better serve their communities.
                 </p>
                 
-                <div className="flex flex-col sm:flex-row gap-4 justify-center max-w-md mx-auto">
-                  <Link
-                    href="/apply"
-                    className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold py-4 px-8 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg"
-                  >
-                    Apply for Access
-                  </Link>
+                <div className="grid sm:grid-cols-2 gap-6 max-w-2xl mx-auto">
+                  {/* New Organization Application */}
+                  <div className="bg-gradient-to-br from-emerald-50 to-teal-50 p-8 rounded-2xl border border-emerald-200">
+                    <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center mb-4 mx-auto">
+                      <svg className="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-3">New Organization</h3>
+                    <p className="text-gray-600 mb-6 text-sm">
+                      Register your masjid or Islamic organization and start connecting with your community.
+                    </p>
+                    <Link
+                      href="/apply"
+                      className="block bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg text-center"
+                    >
+                      Apply for Access
+                    </Link>
+                  </div>
                   
-                  <Link
-                    href="/signin"
-                    className="flex-1 bg-white hover:bg-gray-50 text-gray-900 font-semibold py-4 px-8 rounded-xl border-2 border-gray-200 hover:border-gray-300 transition-all duration-200 transform hover:scale-105"
-                  >
-                    Sign In
-                  </Link>
+                  {/* Existing Users */}
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-8 rounded-2xl border border-blue-200">
+                    <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-4 mx-auto">
+                      <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-3">Existing User</h3>
+                    <p className="text-gray-600 mb-6 text-sm">
+                      Already have access? Sign in to manage your organization and events.
+                    </p>
+                    <Link
+                      href="/signin"
+                      className="block bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg text-center"
+                    >
+                      Sign In
+                    </Link>
+                  </div>
                 </div>
               </div>
             </div>
