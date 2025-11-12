@@ -19,6 +19,13 @@ export default function ApplyPage() {
     organizationType: 'masjid',
     organizationTypeOther: '',
     description: '',
+    amenities: {
+      street_parking: false,
+      women_washroom: false,
+      on_site_parking: false,
+      women_prayer_space: false,
+      wheelchair_accessible: false,
+    },
     contactName: '',
     contactEmail: '',
     contactPhone: '',
@@ -118,6 +125,7 @@ export default function ApplyPage() {
           organization_name: formData.organizationName,
           organization_type: formData.organizationType === 'other' ? formData.organizationTypeOther : formData.organizationType,
           description: formData.description || null,
+          amenities: formData.organizationType === 'masjid' ? formData.amenities : null,
           contact_name: formData.contactName,
           contact_email: formData.contactEmail,
           contact_phone: formData.contactPhone,
@@ -203,10 +211,33 @@ export default function ApplyPage() {
             </div>
 
             {formData.organizationType === 'masjid' && (
-              <PrayerTimesUpload 
-                onFileChange={setPrayerTimesFile}
-                required
-              />
+              <>
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Amenities (optional)</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="flex items-center space-x-2">
+                      <input type="checkbox" checked={formData.amenities.street_parking} onChange={() => setFormData(prev => ({ ...prev, amenities: { ...prev.amenities, street_parking: !prev.amenities.street_parking } }))} />
+                      <span className="text-sm text-black">Street parking</span>
+                    </label>
+                    <label className="flex items-center space-x-2">
+                      <input type="checkbox" checked={formData.amenities.women_washroom} onChange={() => setFormData(prev => ({ ...prev, amenities: { ...prev.amenities, women_washroom: !prev.amenities.women_washroom } }))} />
+                      <span className="text-sm text-black">Women washroom</span>
+                    </label>
+                    <label className="flex items-center space-x-2">
+                      <input type="checkbox" checked={formData.amenities.on_site_parking} onChange={() => setFormData(prev => ({ ...prev, amenities: { ...prev.amenities, on_site_parking: !prev.amenities.on_site_parking } }))} />
+                      <span className="text-sm text-black">On-site parking</span>
+                    </label>
+                    <label className="flex items-center space-x-2">
+                      <input type="checkbox" checked={formData.amenities.women_prayer_space} onChange={() => setFormData(prev => ({ ...prev, amenities: { ...prev.amenities, women_prayer_space: !prev.amenities.women_prayer_space } }))} />
+                      <span className="text-sm text-black">Women prayer space</span>
+                    </label>
+                    <label className="flex items-center space-x-2">
+                      <input type="checkbox" checked={formData.amenities.wheelchair_accessible} onChange={() => setFormData(prev => ({ ...prev, amenities: { ...prev.amenities, wheelchair_accessible: !prev.amenities.wheelchair_accessible } }))} />
+                      <span className="text-sm text-black">Wheelchair accessible</span>
+                    </label>
+                  </div>
+                </div>
+              </>
             )}
 
             <div className="grid md:grid-cols-2 gap-6">

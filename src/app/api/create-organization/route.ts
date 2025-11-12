@@ -26,37 +26,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized access' }, { status: 401 })
     }
 
-    // Create admin client with service role
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    )
+    // Use regular client with RLS policies
+    const supabase = adminClient
 
-    // Step 1: Create Supabase Auth User
-    const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email: organizationData.contact_email,
-      password: temporaryPassword,
-      email_confirm: true,
-      user_metadata: {
-        user_type: 'organization',
-        organization_name: organizationData.organization_name,
-        contact_name: organizationData.contact_name,
-        requires_password_reset: true
-      }
-    })
-
-    if (authError) {
-      console.error('Error creating auth user:', authError)
-      return NextResponse.json({ error: 'Failed to create user account' }, { status: 500 })
-    }
-
-    // Step 2: Geocode address (optional)
+    // Step 1: Geocode address (optional)
     let lat = null
     let lng = null
     
@@ -85,11 +58,10 @@ export async function POST(request: NextRequest) {
       console.error('Geocode error:', geoErr)
     }
 
-    // Step 3: Create organization record with auth user ID
-    const { data: organization, error: orgError } = await supabaseAdmin
+    // Step 2: Create organization record using regular client with RLS
+    const { data: organization, error: orgError } = await supabase
       .from('organizations')
       .insert({
-        id: authUser.user?.id,
         name: organizationData.organization_name,
         type: organizationData.organization_type,
         address: organizationData.address,
@@ -115,17 +87,11 @@ export async function POST(request: NextRequest) {
 
     if (orgError) {
       console.error('Error creating organization:', orgError)
-      // If org creation fails, delete the auth user
-      await supabaseAdmin.auth.admin.deleteUser(authUser.user!.id)
       return NextResponse.json({ error: 'Failed to create organization record' }, { status: 500 })
     }
 
-    // IMPORTANT: Do not return passwords in API responses. The temporary password
-    // should be sent to the user via a secure email service. Return only the
-    // created user and organization metadata.
     return NextResponse.json({ 
       success: true, 
-      user: authUser.user,
       organization: organization
     })
 

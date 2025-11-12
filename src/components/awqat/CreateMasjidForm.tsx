@@ -13,6 +13,13 @@ export default function CreateMasjidForm({ onSuccess }: CreateMasjidFormProps) {
   const [formData, setFormData] = useState({
     organizationName: '',
     description: '',
+    amenities: {
+      street_parking: false,
+      women_washroom: false,
+      on_site_parking: false,
+      women_prayer_space: false,
+      wheelchair_accessible: false,
+    },
     contactName: '',
     contactEmail: '',
     contactPhone: '',
@@ -51,6 +58,7 @@ export default function CreateMasjidForm({ onSuccess }: CreateMasjidFormProps) {
           organization_name: formData.organizationName,
           organization_type: 'masjid',
           description: formData.description || null,
+          amenities: formData.amenities || null,
           contact_name: formData.contactName,
           contact_email: formData.contactEmail,
           contact_phone: formData.contactPhone,
@@ -78,6 +86,13 @@ export default function CreateMasjidForm({ onSuccess }: CreateMasjidFormProps) {
       setFormData({
         organizationName: '',
         description: '',
+        amenities: {
+          street_parking: false,
+          women_washroom: false,
+          on_site_parking: false,
+          women_prayer_space: false,
+          wheelchair_accessible: false,
+        },
         contactName: '',
         contactEmail: '',
         contactPhone: '',
@@ -350,6 +365,32 @@ export default function CreateMasjidForm({ onSuccess }: CreateMasjidFormProps) {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
               placeholder="https://twitter.com/yourprofile"
             />
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">Amenities (optional)</label>
+          <div className="grid grid-cols-2 gap-2">
+            <label className="flex items-center space-x-2">
+              <input type="checkbox" checked={formData.amenities.street_parking} onChange={() => setFormData(prev => ({ ...prev, amenities: { ...prev.amenities, street_parking: !prev.amenities.street_parking } }))} />
+              <span className="text-sm text-black">Street parking</span>
+            </label>
+            <label className="flex items-center space-x-2">
+              <input type="checkbox" checked={formData.amenities.women_washroom} onChange={() => setFormData(prev => ({ ...prev, amenities: { ...prev.amenities, women_washroom: !prev.amenities.women_washroom } }))} />
+              <span className="text-sm text-black">Women washroom</span>
+            </label>
+            <label className="flex items-center space-x-2">
+              <input type="checkbox" checked={formData.amenities.on_site_parking} onChange={() => setFormData(prev => ({ ...prev, amenities: { ...prev.amenities, on_site_parking: !prev.amenities.on_site_parking } }))} />
+              <span className="text-sm text-black">On-site parking</span>
+            </label>
+            <label className="flex items-center space-x-2">
+              <input type="checkbox" checked={formData.amenities.women_prayer_space} onChange={() => setFormData(prev => ({ ...prev, amenities: { ...prev.amenities, women_prayer_space: !prev.amenities.women_prayer_space } }))} />
+              <span className="text-sm text-black">Women prayer space</span>
+            </label>
+            <label className="flex items-center space-x-2">
+              <input type="checkbox" checked={formData.amenities.wheelchair_accessible} onChange={() => setFormData(prev => ({ ...prev, amenities: { ...prev.amenities, wheelchair_accessible: !prev.amenities.wheelchair_accessible } }))} />
+              <span className="text-sm text-black">Wheelchair accessible</span>
+            </label>
           </div>
         </div>
 

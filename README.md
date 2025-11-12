@@ -50,7 +50,7 @@ NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 # For production, you'll also need:
-# SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+# SUPABSE_SERVICE_ROLE_KEY=your_service_role_key
 ```
 
 ### 3. Install Dependencies

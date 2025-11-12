@@ -36,22 +36,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized access' }, { status: 401 })
     }
 
-    // Use service role key for privileged operations (bypass RLS)
-    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      console.error('SUPABASE_SERVICE_ROLE_KEY is not set')
-      return NextResponse.json({ error: 'Server misconfiguration: missing service role key' }, { status: 500 })
-    }
-
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-      process.env.SUPABASE_SERVICE_ROLE_KEY || '',
-      {
-        auth: { autoRefreshToken: false, persistSession: false }
-      }
-    )
+    // Use regular client with RLS policies
+    const supabase = adminClient
 
     // Fetch the application first (to get organization data if we need to create org)
-    const { data: application, error: appFetchError } = await supabaseAdmin
+    const { data: application, error: appFetchError } = await supabase
       .from('organization_applications')
       .select('*')
       .eq('id', applicationId)
@@ -67,7 +56,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Update application status to 'approved' and return user_id
-    const { data: updatedApp, error: updateAppError } = await supabaseAdmin
+    const { data: updatedApp, error: updateAppError } = await supabase
       .from('organization_applications')
       .update({ application_status: 'approved', updated_at: new Date().toISOString() })
       .eq('id', applicationId)
@@ -122,7 +111,7 @@ export async function POST(request: NextRequest) {
       }
 
       try {
-        const { data: createdOrg, error: orgError } = await supabaseAdmin
+        const { data: createdOrg, error: orgError } = await supabase
           .from('organizations')
           .insert({
             name: application.organization_name,
@@ -167,7 +156,7 @@ export async function POST(request: NextRequest) {
         if (orgId) {
           try {
             const payload = { organization_id: orgId, prayer_date: today }
-            const { data: dptData, error: dptError } = await supabaseAdmin
+            const { data: dptData, error: dptError } = await supabase
               .from('daily_prayer_times')
               .upsert([payload], { onConflict: 'organization_id,prayer_date' })
               .select('id')
@@ -184,7 +173,7 @@ export async function POST(request: NextRequest) {
         console.error('Unexpected error inserting daily_prayer_times:', dptErr)
       }
 
-      const { error: profileError } = await supabaseAdmin
+      const { error: profileError } = await supabase
         .from('profiles')
         .update({ is_org: true, org_id: orgId, updated_at: new Date().toISOString() })
         .eq('id', userId)

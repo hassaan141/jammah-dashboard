@@ -68,6 +68,7 @@ export default function AwqatStatusDropdown({ applicationId, currentStatus, orga
               postal_code: organizationData.postal_code,
               website: organizationData.website || null,
               donate_link: organizationData.donate_link || null,
+              amenities: organizationData.amenities || null,
               facebook: organizationData.facebook || null,
               instagram: organizationData.instagram || null,
               twitter: organizationData.twitter || null,
