@@ -16,8 +16,7 @@ import ApplicationSuccess from '@/components/apply/ApplicationSuccess'
 export default function ApplyPage() {
   const [formData, setFormData] = useState({
     organizationName: '',
-    organizationType: 'masjid',
-    organizationTypeOther: '',
+  organizationType: 'masjid',
     description: '',
     amenities: {
       street_parking: false,
@@ -123,7 +122,7 @@ export default function ApplyPage() {
         .from('organization_applications')
         .insert({
           organization_name: formData.organizationName,
-          organization_type: formData.organizationType === 'other' ? formData.organizationTypeOther : formData.organizationType,
+          organization_type: formData.organizationType,
           description: formData.description || null,
           amenities: formData.organizationType === 'masjid' ? formData.amenities : null,
           contact_name: formData.contactName,
@@ -191,9 +190,7 @@ export default function ApplyPage() {
 
             <OrganizationTypeSelect
               organizationType={formData.organizationType}
-              organizationTypeOther={formData.organizationTypeOther}
               onOrganizationTypeChange={(value) => updateFormData('organizationType', value)}
-              onOrganizationTypeOtherChange={(value) => updateFormData('organizationTypeOther', value)}
             />
 
             <div>

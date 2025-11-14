@@ -9,7 +9,6 @@ export default function ApplyPage() {
   const [formData, setFormData] = useState({
     organizationName: '',
     organizationType: 'masjid',
-    organizationTypeOther: '',
     contactName: '',
     contactEmail: '',
     contactPhone: '',
@@ -63,7 +62,7 @@ export default function ApplyPage() {
         .from('organization_applications')
         .insert({
           organization_name: formData.organizationName,
-          organization_type: formData.organizationType === 'other' ? formData.organizationTypeOther : formData.organizationType,
+          organization_type: formData.organizationType,
           contact_name: formData.contactName,
           contact_email: formData.contactEmail,
           contact_phone: formData.contactPhone,
@@ -170,27 +169,10 @@ export default function ApplyPage() {
                 <option value="book-club">Book Club</option>
                 <option value="book-store">Book Store</option>
                 <option value="run-club">Run Club</option>
-                <option value="other">Other</option>
+                {/* 'Other' removed to match mobile UX */}
               </select>
             </div>
-            {formData.organizationType === 'other' && (
-              <div>
-                <label htmlFor="organizationTypeOther" className="block text-sm font-medium text-gray-700 mb-2">
-                  Please specify *
-                </label>
-                <input
-                  type="text"
-                  id="organizationTypeOther"
-                  required
-                  value={formData.organizationTypeOther}
-                  onChange={(e) =>
-                    setFormData({ ...formData, organizationTypeOther: e.target.value })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
-                  placeholder="Describe your organization type"
-                />
-              </div>
-            )}
+            {/* no 'other' option or extra field */}
 
             {formData.organizationType === 'masjid' && (
               <div>

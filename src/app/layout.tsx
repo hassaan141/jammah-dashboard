@@ -9,6 +9,9 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Community Console - Jamah",
   description: "Management console for Muslim community organizations",
+  icons: {
+    icon: '/logo.ico',
+  },
 };
 
 export default function RootLayout({
