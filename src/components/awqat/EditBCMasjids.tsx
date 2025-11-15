@@ -40,12 +40,12 @@ export default function EditBCMasjids() {
 
   const fetchBCMasjids = useCallback(async () => {
     try {
-      // Filter for masjids in British Columbia
+      // Filter for masjids in British Columbia (including both "British Columbia" and "BC")
       const { data, error } = await supabase
         .from('organizations')
         .select('*')
         .eq('type', 'masjid')
-        .ilike('province_state', '%British Columbia%')
+        .or('province_state.ilike.%British Columbia%,province_state.ilike.%BC%')
         .order('name')
 
       if (error) throw error
