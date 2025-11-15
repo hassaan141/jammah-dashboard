@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Country, State, City } from 'country-state-city'
+import { City } from 'country-state-city'
 
 interface CreateMasjidFormProps {
   onSuccess?: () => void
@@ -52,7 +52,7 @@ export default function CreateMasjidForm({ onSuccess }: CreateMasjidFormProps) {
 
     try {
       // Create application entry first (same as normal flow)
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('organization_applications')
         .insert({
           organization_name: formData.organizationName,

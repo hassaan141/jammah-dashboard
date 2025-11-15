@@ -88,7 +88,7 @@ export default function AdminEditOrganizationPage() {
       const supabase = createClient()
       
       // Try organizations table first
-      let { data, error } = await supabase
+      const { data, error } = await supabase
         .from('organizations')
         .select('*')
         .eq('id', orgId)
@@ -314,7 +314,7 @@ export default function AdminEditOrganizationPage() {
       const supabase = createClient()
       
       // Try to update organizations table first
-      let { error } = await supabase
+      const { error } = await supabase
         .from('organizations')
         .update(updateData)
         .eq('id', orgId)

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 
 interface Event {
@@ -195,9 +196,11 @@ export default function EventsList({ events, organizationId }: EventsListProps) 
 
                 {event.image_url && (
                   <div className="ml-6 flex-shrink-0">
-                    <img 
+                    <Image 
                       src={event.image_url} 
                       alt={event.title}
+                      width={96}
+                      height={96}
                       className="w-24 h-24 object-cover rounded-lg"
                     />
                   </div>

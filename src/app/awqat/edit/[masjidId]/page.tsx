@@ -1,10 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Country, State, City } from 'country-state-city'
-import { useMemo } from 'react'
+import { City } from 'country-state-city'
 
 interface Masjid {
   id: string

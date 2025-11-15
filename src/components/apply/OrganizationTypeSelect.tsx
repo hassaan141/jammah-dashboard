@@ -1,5 +1,4 @@
 import SelectInput from '../forms/SelectInput'
-import TextInput from '../forms/TextInput'
 
 interface OrganizationTypeSelectProps {
   organizationType: string

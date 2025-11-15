@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Image from 'next/image'
 import FileInput from '../forms/FileInput'
 
 interface PrayerTimesUploadProps {
@@ -25,9 +26,11 @@ export default function PrayerTimesUpload({ onFileChange, required = false }: Pr
       </div>
       {showFormat && (
         <div className="mt-3 p-3 bg-white rounded border">
-          <img 
+          <Image 
             src="/CalendarFormat.png" 
             alt="Prayer Times JSON Format Example" 
+            width={800}
+            height={600}
             className="max-w-full h-auto rounded border"
           />
         </div>

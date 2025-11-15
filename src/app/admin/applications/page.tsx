@@ -1,5 +1,4 @@
 import { createClient } from '@/lib/supabase/server'
-import Link from 'next/link'
 import StatusDropdown from './StatusDropdown'
 
 export default async function AdminApplicationsPage() {
@@ -10,21 +9,6 @@ export default async function AdminApplicationsPage() {
     .from('organization_applications')
     .select('*')
     .order('created_at', { ascending: false })
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'submitted':
-        return 'bg-yellow-100 text-yellow-800'
-      case 'in_review':
-        return 'bg-blue-100 text-blue-800'
-      case 'approved':
-        return 'bg-green-100 text-green-800'
-      case 'rejected':
-        return 'bg-red-100 text-red-800'
-      default:
-        return 'bg-gray-100 text-gray-800'
-    }
-  }
 
   return (
     <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
