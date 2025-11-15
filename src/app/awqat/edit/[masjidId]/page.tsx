@@ -87,7 +87,7 @@ export default function AwqatEditMasjidPage() {
           .select('*')
           .eq('id', masjidId)
           .eq('type', 'masjid')
-          .ilike('province_state', '%British Columbia%')
+          .or('province_state.ilike.%British Columbia%,province_state.ilike.%BC%')  
           .single()
 
         if (error) throw error
@@ -194,7 +194,7 @@ export default function AwqatEditMasjidPage() {
         })
         .eq('id', masjidId)
         .eq('type', 'masjid')
-        .ilike('province_state', '%British Columbia%')
+        .or('province_state.ilike.%British Columbia%,province_state.ilike.%BC%')  // Catches both!
 
       if (error) throw error
 
