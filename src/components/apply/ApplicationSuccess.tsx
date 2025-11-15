@@ -12,7 +12,7 @@ export default function ApplicationSuccess() {
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Account Created & Application Submitted!</h2>
           <p className="text-black mb-6">
-            Your account has been created and application submitted successfully. Please check your email to verify your account, then we&apos;ll review your application and get back to you within 3-5 business days.
+            Your account has been created and application submitted successfully. Please check your email to verify the account, then we&apos;ll review your application and get back to you within 3-5 business days.
           </p>
           <Link
             href="/"
