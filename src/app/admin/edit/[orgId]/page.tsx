@@ -14,7 +14,15 @@ import SuccessMessage from '@/components/ui/SuccessMessage'
 interface Organization {
   id: string
   name: string
+  type?: string
   description?: string
+  amenities?: {
+    street_parking?: boolean
+    women_washroom?: boolean
+    on_site_parking?: boolean
+    women_prayer_space?: boolean
+    wheelchair_accessible?: boolean
+  }
   address?: string
   city?: string
   province_state?: string
@@ -49,7 +57,15 @@ export default function AdminEditOrganizationPage() {
   // Form fields
   const [formData, setFormData] = useState({
     name: '',
+    type: '',
     description: '',
+    amenities: {
+      street_parking: false,
+      women_washroom: false,
+      on_site_parking: false,
+      women_prayer_space: false,
+      wheelchair_accessible: false,
+    },
     address: '',
     city: '',
     province_state: '',
@@ -119,7 +135,9 @@ export default function AdminEditOrganizationPage() {
           setOrganization(mappedData)
           setFormData({
             name: mappedData.name || '',
+            type: (appData as any).organization_type || '',
             description: mappedData.description || '',
+            amenities: normalizeAmenities((appData as any).amenities),
             address: mappedData.address || '',
             city: mappedData.city || '',
             province_state: mappedData.province_state || '',
@@ -141,7 +159,9 @@ export default function AdminEditOrganizationPage() {
         setOrganization(data)
         setFormData({
           name: data.name || '',
+          type: data.type || '',
           description: data.description || '',
+          amenities: normalizeAmenities(data.amenities),
           address: data.address || '',
           city: data.city || '',
           province_state: data.province_state || '',
@@ -171,10 +191,41 @@ export default function AdminEditOrganizationPage() {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
+  const updateAmenity = (amenityKey: string, value: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      amenities: {
+        ...prev.amenities,
+        [amenityKey]: value
+      }
+    }))
+  }
+
+  const normalizeAmenities = (amenities: any) => {
+    if (!amenities) {
+      return {
+        street_parking: false,
+        women_washroom: false,
+        on_site_parking: false,
+        women_prayer_space: false,
+        wheelchair_accessible: false,
+      }
+    }
+    return {
+      street_parking: amenities.street_parking || false,
+      women_washroom: amenities.women_washroom || false,
+      on_site_parking: amenities.on_site_parking || false,
+      women_prayer_space: amenities.women_prayer_space || false,
+      wheelchair_accessible: amenities.wheelchair_accessible || false,
+    }
+  }
+
   const resetFormData = (org: Organization) => {
     setFormData({
       name: org.name || '',
+      type: org.type || '',
       description: org.description || '',
+      amenities: normalizeAmenities(org.amenities),
       address: org.address || '',
       city: org.city || '',
       province_state: org.province_state || '',
@@ -254,6 +305,7 @@ export default function AdminEditOrganizationPage() {
 
       const updateData = {
         ...formData,
+        amenities: formData.type === 'masjid' ? formData.amenities : null,
         latitude: lat,
         longitude: lng,
         updated_at: new Date().toISOString()
@@ -419,6 +471,64 @@ export default function AdminEditOrganizationPage() {
                 isEditMode={isEditMode}
                 organizationId={orgId}
               />
+
+              {formData.type === 'masjid' && (
+                <div>
+                  <h3 className="text-lg font-medium text-black mb-4">Amenities</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <label className="flex items-center space-x-2">
+                      <input 
+                        type="checkbox" 
+                        checked={formData.amenities.street_parking} 
+                        onChange={(e) => updateAmenity('street_parking', e.target.checked)}
+                        disabled={!isEditMode}
+                        className="rounded"
+                      />
+                      <span className={`text-sm ${!isEditMode ? 'text-gray-500' : 'text-black'}`}>Street parking</span>
+                    </label>
+                    <label className="flex items-center space-x-2">
+                      <input 
+                        type="checkbox" 
+                        checked={formData.amenities.women_washroom} 
+                        onChange={(e) => updateAmenity('women_washroom', e.target.checked)}
+                        disabled={!isEditMode}
+                        className="rounded"
+                      />
+                      <span className={`text-sm ${!isEditMode ? 'text-gray-500' : 'text-black'}`}>Women washroom</span>
+                    </label>
+                    <label className="flex items-center space-x-2">
+                      <input 
+                        type="checkbox" 
+                        checked={formData.amenities.on_site_parking} 
+                        onChange={(e) => updateAmenity('on_site_parking', e.target.checked)}
+                        disabled={!isEditMode}
+                        className="rounded"
+                      />
+                      <span className={`text-sm ${!isEditMode ? 'text-gray-500' : 'text-black'}`}>On-site parking</span>
+                    </label>
+                    <label className="flex items-center space-x-2">
+                      <input 
+                        type="checkbox" 
+                        checked={formData.amenities.women_prayer_space} 
+                        onChange={(e) => updateAmenity('women_prayer_space', e.target.checked)}
+                        disabled={!isEditMode}
+                        className="rounded"
+                      />
+                      <span className={`text-sm ${!isEditMode ? 'text-gray-500' : 'text-black'}`}>Women prayer space</span>
+                    </label>
+                    <label className="flex items-center space-x-2">
+                      <input 
+                        type="checkbox" 
+                        checked={formData.amenities.wheelchair_accessible} 
+                        onChange={(e) => updateAmenity('wheelchair_accessible', e.target.checked)}
+                        disabled={!isEditMode}
+                        className="rounded"
+                      />
+                      <span className={`text-sm ${!isEditMode ? 'text-gray-500' : 'text-black'}`}>Wheelchair accessible</span>
+                    </label>
+                  </div>
+                </div>
+              )}
 
               <ContactInformationSection
                 formData={{

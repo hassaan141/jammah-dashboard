@@ -10,6 +10,13 @@ interface Masjid {
   id: string
   name: string
   description?: string
+  amenities?: {
+    street_parking?: boolean
+    women_washroom?: boolean
+    on_site_parking?: boolean
+    women_prayer_space?: boolean
+    wheelchair_accessible?: boolean
+  }
   address?: string
   city?: string
   province_state?: string
@@ -40,6 +47,13 @@ export default function AwqatEditMasjidPage() {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    amenities: {
+      street_parking: false,
+      women_washroom: false,
+      on_site_parking: false,
+      women_prayer_space: false,
+      wheelchair_accessible: false,
+    },
     address: '',
     city: '',
     province_state: 'British Columbia',
@@ -89,6 +103,7 @@ export default function AwqatEditMasjidPage() {
         setFormData({
           name: data.name || '',
           description: data.description || '',
+          amenities: normalizeAmenities(data.amenities),
           address: data.address || '',
           city: data.city || '',
           province_state: data.province_state || 'British Columbia',
@@ -121,6 +136,35 @@ export default function AwqatEditMasjidPage() {
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
+  const updateAmenity = (amenityKey: string, value: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      amenities: {
+        ...prev.amenities,
+        [amenityKey]: value
+      }
+    }))
+  }
+
+  const normalizeAmenities = (amenities: any) => {
+    if (!amenities) {
+      return {
+        street_parking: false,
+        women_washroom: false,
+        on_site_parking: false,
+        women_prayer_space: false,
+        wheelchair_accessible: false,
+      }
+    }
+    return {
+      street_parking: amenities.street_parking || false,
+      women_washroom: amenities.women_washroom || false,
+      on_site_parking: amenities.on_site_parking || false,
+      women_prayer_space: amenities.women_prayer_space || false,
+      wheelchair_accessible: amenities.wheelchair_accessible || false,
+    }
+  }
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
@@ -133,6 +177,7 @@ export default function AwqatEditMasjidPage() {
         .update({
           name: formData.name,
           description: formData.description || null,
+          amenities: formData.amenities,
           address: formData.address || null,
           city: formData.city || null,
           province_state: formData.province_state,
@@ -269,6 +314,57 @@ export default function AwqatEditMasjidPage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
                 placeholder="Brief description of the masjid"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-black mb-2">Amenities</label>
+              <div className="grid grid-cols-2 gap-4">
+                <label className="flex items-center space-x-2">
+                  <input 
+                    type="checkbox" 
+                    checked={formData.amenities.street_parking} 
+                    onChange={(e) => updateAmenity('street_parking', e.target.checked)}
+                    className="rounded"
+                  />
+                  <span className="text-sm text-black">Street parking</span>
+                </label>
+                <label className="flex items-center space-x-2">
+                  <input 
+                    type="checkbox" 
+                    checked={formData.amenities.women_washroom} 
+                    onChange={(e) => updateAmenity('women_washroom', e.target.checked)}
+                    className="rounded"
+                  />
+                  <span className="text-sm text-black">Women washroom</span>
+                </label>
+                <label className="flex items-center space-x-2">
+                  <input 
+                    type="checkbox" 
+                    checked={formData.amenities.on_site_parking} 
+                    onChange={(e) => updateAmenity('on_site_parking', e.target.checked)}
+                    className="rounded"
+                  />
+                  <span className="text-sm text-black">On-site parking</span>
+                </label>
+                <label className="flex items-center space-x-2">
+                  <input 
+                    type="checkbox" 
+                    checked={formData.amenities.women_prayer_space} 
+                    onChange={(e) => updateAmenity('women_prayer_space', e.target.checked)}
+                    className="rounded"
+                  />
+                  <span className="text-sm text-black">Women prayer space</span>
+                </label>
+                <label className="flex items-center space-x-2">
+                  <input 
+                    type="checkbox" 
+                    checked={formData.amenities.wheelchair_accessible} 
+                    onChange={(e) => updateAmenity('wheelchair_accessible', e.target.checked)}
+                    className="rounded"
+                  />
+                  <span className="text-sm text-black">Wheelchair accessible</span>
+                </label>
+              </div>
             </div>
 
             <div className="grid md:grid-cols-2 gap-6">

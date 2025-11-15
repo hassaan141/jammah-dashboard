@@ -17,6 +17,15 @@ const AccessPending = lazy(() => import('@/components/org/AccessPending'))
 interface Organization {
   id: string
   name: string
+  type?: string
+  description?: string
+  amenities?: {
+    street_parking?: boolean
+    women_washroom?: boolean
+    on_site_parking?: boolean
+    women_prayer_space?: boolean
+    wheelchair_accessible?: boolean
+  }
   address?: string
   city?: string
   province_state?: string
@@ -37,6 +46,14 @@ interface Organization {
 
 interface FormData {
   name: string
+  description: string
+  amenities: {
+    street_parking: boolean
+    women_washroom: boolean
+    on_site_parking: boolean
+    women_prayer_space: boolean
+    wheelchair_accessible: boolean
+  }
   address: string
   city: string
   province_state: string
@@ -63,6 +80,14 @@ export default function OrgProfilePage() {
 
   const [formData, setFormData] = useState<FormData>({
     name: '',
+    description: '',
+    amenities: {
+      street_parking: false,
+      women_washroom: false,
+      on_site_parking: false,
+      women_prayer_space: false,
+      wheelchair_accessible: false,
+    },
     address: '',
     city: '',
     province_state: '',
@@ -82,9 +107,40 @@ export default function OrgProfilePage() {
     setFormData(prev => ({ ...prev, [field]: value }))
   }, [])
 
+  const updateAmenity = useCallback((amenityKey: string, value: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      amenities: {
+        ...prev.amenities,
+        [amenityKey]: value
+      }
+    }))
+  }, [])
+
+  const normalizeAmenities = useCallback((amenities: any) => {
+    if (!amenities) {
+      return {
+        street_parking: false,
+        women_washroom: false,
+        on_site_parking: false,
+        women_prayer_space: false,
+        wheelchair_accessible: false,
+      }
+    }
+    return {
+      street_parking: amenities.street_parking || false,
+      women_washroom: amenities.women_washroom || false,
+      on_site_parking: amenities.on_site_parking || false,
+      women_prayer_space: amenities.women_prayer_space || false,
+      wheelchair_accessible: amenities.wheelchair_accessible || false,
+    }
+  }, [])
+
   const resetFormData = useCallback((org: Organization) => {
     setFormData({
       name: org.name || '',
+      description: org.description || '',
+      amenities: normalizeAmenities(org.amenities),
       address: org.address || '',
       city: org.city || '',
       province_state: org.province_state || '',
@@ -99,7 +155,7 @@ export default function OrgProfilePage() {
       twitter: org.twitter || '',
       donate_link: org.donate_link || ''
     })
-  }, [])
+  }, [normalizeAmenities])
 
   useEffect(() => {
     async function loadOrganization() {
@@ -193,6 +249,8 @@ export default function OrgProfilePage() {
       // Prepare update data
       const updateData: any = {
         name: formData.name,
+        description: formData.description || null,
+        amenities: organization?.type === 'masjid' ? formData.amenities : null,
         address: formData.address || null,
         city: formData.city || null,
         province_state: formData.province_state || null,
@@ -296,6 +354,84 @@ export default function OrgProfilePage() {
                 required
                 isEditMode={isEditMode}
               />
+
+              <div className="mt-6">
+                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+                  Description
+                </label>
+                {isEditMode ? (
+                  <textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => updateFormData('description', e.target.value)}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
+                    placeholder="Brief description of your organization..."
+                  />
+                ) : (
+                  <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700">
+                    {formData.description || 'No description provided'}
+                  </div>
+                )}
+              </div>
+
+              {organization?.type === 'masjid' && (
+                <div className="mt-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Amenities</label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <label className="flex items-center space-x-2">
+                      <input 
+                        type="checkbox" 
+                        checked={formData.amenities.street_parking} 
+                        onChange={(e) => updateAmenity('street_parking', e.target.checked)}
+                        disabled={!isEditMode}
+                        className="rounded"
+                      />
+                      <span className={`text-sm ${!isEditMode ? 'text-gray-500' : 'text-black'}`}>Street parking</span>
+                    </label>
+                    <label className="flex items-center space-x-2">
+                      <input 
+                        type="checkbox" 
+                        checked={formData.amenities.women_washroom} 
+                        onChange={(e) => updateAmenity('women_washroom', e.target.checked)}
+                        disabled={!isEditMode}
+                        className="rounded"
+                      />
+                      <span className={`text-sm ${!isEditMode ? 'text-gray-500' : 'text-black'}`}>Women washroom</span>
+                    </label>
+                    <label className="flex items-center space-x-2">
+                      <input 
+                        type="checkbox" 
+                        checked={formData.amenities.on_site_parking} 
+                        onChange={(e) => updateAmenity('on_site_parking', e.target.checked)}
+                        disabled={!isEditMode}
+                        className="rounded"
+                      />
+                      <span className={`text-sm ${!isEditMode ? 'text-gray-500' : 'text-black'}`}>On-site parking</span>
+                    </label>
+                    <label className="flex items-center space-x-2">
+                      <input 
+                        type="checkbox" 
+                        checked={formData.amenities.women_prayer_space} 
+                        onChange={(e) => updateAmenity('women_prayer_space', e.target.checked)}
+                        disabled={!isEditMode}
+                        className="rounded"
+                      />
+                      <span className={`text-sm ${!isEditMode ? 'text-gray-500' : 'text-black'}`}>Women prayer space</span>
+                    </label>
+                    <label className="flex items-center space-x-2">
+                      <input 
+                        type="checkbox" 
+                        checked={formData.amenities.wheelchair_accessible} 
+                        onChange={(e) => updateAmenity('wheelchair_accessible', e.target.checked)}
+                        disabled={!isEditMode}
+                        className="rounded"
+                      />
+                      <span className={`text-sm ${!isEditMode ? 'text-gray-500' : 'text-black'}`}>Wheelchair accessible</span>
+                    </label>
+                  </div>
+                </div>
+              )}
 
               <EditableTextInput
                 id="address"
