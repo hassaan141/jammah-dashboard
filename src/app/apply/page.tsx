@@ -91,6 +91,16 @@ export default function ApplyPage() {
     })
   }
 
+  const updateAmenity = (amenityKey: string, value: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      amenities: {
+        ...prev.amenities,
+        [amenityKey]: value
+      }
+    }))
+  }
+
   // Auto-sync contact email with login email
   useEffect(() => {
     setFormData(prev => ({ ...prev, contactEmail: credentials.email }))
@@ -277,23 +287,43 @@ export default function ApplyPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Amenities (Optional)</label>
                   <div className="grid grid-cols-2 gap-2">
                     <label className="flex items-center space-x-2">
-                      <input type="checkbox" checked={formData.amenities.street_parking} onChange={() => setFormData(prev => ({ ...prev, amenities: { ...prev.amenities, street_parking: !prev.amenities.street_parking } }))} />
+                      <input 
+                        type="checkbox" 
+                        checked={formData.amenities.street_parking} 
+                        onChange={(e) => updateAmenity('street_parking', e.target.checked)} 
+                      />
                       <span className="text-sm text-black">Street parking</span>
                     </label>
                     <label className="flex items-center space-x-2">
-                      <input type="checkbox" checked={formData.amenities.women_washroom} onChange={() => setFormData(prev => ({ ...prev, amenities: { ...prev.amenities, women_washroom: !prev.amenities.women_washroom } }))} />
+                      <input 
+                        type="checkbox" 
+                        checked={formData.amenities.women_washroom} 
+                        onChange={(e) => updateAmenity('women_washroom', e.target.checked)} 
+                      />
                       <span className="text-sm text-black">Women washroom</span>
                     </label>
                     <label className="flex items-center space-x-2">
-                      <input type="checkbox" checked={formData.amenities.on_site_parking} onChange={() => setFormData(prev => ({ ...prev, amenities: { ...prev.amenities, on_site_parking: !prev.amenities.on_site_parking } }))} />
+                      <input 
+                        type="checkbox" 
+                        checked={formData.amenities.on_site_parking} 
+                        onChange={(e) => updateAmenity('on_site_parking', e.target.checked)} 
+                      />
                       <span className="text-sm text-black">On-site parking</span>
                     </label>
                     <label className="flex items-center space-x-2">
-                      <input type="checkbox" checked={formData.amenities.women_prayer_space} onChange={() => setFormData(prev => ({ ...prev, amenities: { ...prev.amenities, women_prayer_space: !prev.amenities.women_prayer_space } }))} />
+                      <input 
+                        type="checkbox" 
+                        checked={formData.amenities.women_prayer_space} 
+                        onChange={(e) => updateAmenity('women_prayer_space', e.target.checked)} 
+                      />
                       <span className="text-sm text-black">Women prayer space</span>
                     </label>
                     <label className="flex items-center space-x-2">
-                      <input type="checkbox" checked={formData.amenities.wheelchair_accessible} onChange={() => setFormData(prev => ({ ...prev, amenities: { ...prev.amenities, wheelchair_accessible: !prev.amenities.wheelchair_accessible } }))} />
+                      <input 
+                        type="checkbox" 
+                        checked={formData.amenities.wheelchair_accessible} 
+                        onChange={(e) => updateAmenity('wheelchair_accessible', e.target.checked)} 
+                      />
                       <span className="text-sm text-black">Wheelchair accessible</span>
                     </label>
                   </div>
