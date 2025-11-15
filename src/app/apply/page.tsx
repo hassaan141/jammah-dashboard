@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -10,13 +10,13 @@ import TextInput from '@/components/forms/TextInput'
 import Select from '@/components/forms/Select'
 import SubmitButton from '@/components/forms/SubmitButton'
 import OrganizationTypeSelect from '@/components/apply/OrganizationTypeSelect'
-import PrayerTimesUpload from '@/components/apply/PrayerTimesUpload'
 import ApplicationSuccess from '@/components/apply/ApplicationSuccess'
 
 export default function ApplyPage() {
+  const [credentials, setCredentials] = useState({ email: '', password: '', confirmPassword: '' })
   const [formData, setFormData] = useState({
     organizationName: '',
-  organizationType: 'masjid',
+    organizationType: 'masjid',
     description: '',
     amenities: {
       street_parking: false,
@@ -39,9 +39,9 @@ export default function ApplyPage() {
     instagram: '',
     twitter: '',
   })
-  const [prayerTimesFile, setPrayerTimesFile] = useState<File | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [message, setMessage] = useState<string | null>(null)
   const router = useRouter()
 
   // Country-State-City dropdown options
@@ -71,6 +71,10 @@ export default function ApplyPage() {
     }))
   }, [formData.country, formData.provinceState])
 
+  const updateCredentials = (field: string, value: string) => {
+    setCredentials(prev => ({ ...prev, [field]: value }))
+  }
+
   const updateFormData = (field: string, value: string) => {
     setFormData(prev => {
       const newData = { ...prev, [field]: value }
@@ -87,38 +91,53 @@ export default function ApplyPage() {
     })
   }
 
+  // Auto-sync contact email with login email
+  useEffect(() => {
+    setFormData(prev => ({ ...prev, contactEmail: credentials.email }))
+  }, [credentials.email])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
+    setMessage(null)
 
     try {
-      const supabase = createClient()
-      
-      let prayerTimesUrl = null
-      
-      // Upload prayer times file if provided (for masjids)
-      if (prayerTimesFile && formData.organizationType === 'masjid') {
-        const fileName = `prayer-times-${formData.organizationName}-${Date.now()}.json`
-        
-        const { error: uploadError } = await supabase.storage
-          .from('prayer-times')
-          .upload(fileName, prayerTimesFile)
-          
-        if (uploadError) {
-          console.error('Prayer times file upload error:', uploadError)
-          alert('Error uploading prayer times file. Please try again or contact support.')
-          setIsSubmitting(false)
-          return
-        } else {
-          const { data: { publicUrl } } = supabase.storage
-            .from('prayer-times')
-            .getPublicUrl(fileName)
-          prayerTimesUrl = publicUrl
-        }
+      // Validation
+      if (!credentials.email || !credentials.password || !credentials.confirmPassword) {
+        setMessage('Please fill in email and password fields')
+        return
+      }
+      if (credentials.password !== credentials.confirmPassword) {
+        setMessage('Passwords do not match')
+        return
+      }
+      if (!formData.organizationName || !formData.contactName || !formData.country || !formData.provinceState || !formData.city || !formData.postalCode) {
+        setMessage('Please fill in all required fields')
+        return
       }
 
-      // Submit application
-      const { error } = await supabase
+      const supabase = createClient()
+
+      // Sign up user with verification redirect
+      const { data, error: signError } = await supabase.auth.signUp({
+        email: credentials.email,
+        password: credentials.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/verify`,
+          data: {
+            user_type: 'organization',
+            organization_name: formData.organizationName,
+            display_name: formData.organizationName,
+            contact_name: formData.contactName,
+            contact_email: credentials.email,
+          },
+        },
+      })
+
+      if (signError) throw signError
+
+      // Submit application and link to user if account was created
+      const { error: appError } = await supabase
         .from('organization_applications')
         .insert({
           organization_name: formData.organizationName,
@@ -126,36 +145,35 @@ export default function ApplyPage() {
           description: formData.description || null,
           amenities: formData.organizationType === 'masjid' ? formData.amenities : null,
           contact_name: formData.contactName,
-          contact_email: formData.contactEmail,
-          contact_phone: formData.contactPhone,
-          address: formData.address,
-          city: formData.city,
-          province_state: formData.provinceState,
-          country: formData.country,
-          postal_code: formData.postalCode,
+          contact_email: credentials.email,
+          contact_phone: formData.contactPhone || null,
+          address: formData.address || null,
+          city: formData.city || null,
+          province_state: formData.provinceState || null,
+          country: formData.country || null,
+          postal_code: formData.postalCode || null,
           website: formData.website || null,
           donate_link: formData.donateLink || null,
           facebook: formData.facebook || null,
           instagram: formData.instagram || null,
           twitter: formData.twitter || null,
-          prayer_times_url: prayerTimesUrl,
+          prayer_times_url: null,
           application_status: 'submitted',
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
+          ...(data.user?.id ? { user_id: data.user.id } : {}),
         })
 
-      if (error) {
-        console.error('Application submission error:', error)
-        console.error('Error details:', JSON.stringify(error, null, 2))
-        console.error('Error code:', error.code)
-        console.error('Error message:', error.message)
-        alert('Error submitting application. Please try again.')
-      } else {
-        setSubmitted(true)
+      if (appError) {
+        console.error('Application submission error:', appError)
+        setMessage('Account created but error submitting application. Please contact support.')
+        return
       }
-    } catch (error) {
+
+      setSubmitted(true)
+    } catch (error: any) {
       console.error('Unexpected error:', error)
-      alert('Error submitting application. Please try again.')
+      setMessage(error?.message || 'Error creating account and submitting application. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
@@ -178,39 +196,85 @@ export default function ApplyPage() {
             </p>
           </div>
 
+          {message && (
+            <div className={`p-4 rounded-lg ${message.includes('Error') || message.includes('error') ? 'bg-red-50 text-red-800' : 'bg-blue-50 text-blue-800'}`}>
+              {message}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-6">
-            <TextInput
-              id="organizationName"
-              label="Organization Name"
-              value={formData.organizationName}
-              onChange={(value) => updateFormData('organizationName', value)}
-              placeholder="e.g., Al-Noor Islamic Center"
-              required
-            />
-
-            <OrganizationTypeSelect
-              organizationType={formData.organizationType}
-              onOrganizationTypeChange={(value) => updateFormData('organizationType', value)}
-            />
-
-            <div>
-              <label htmlFor="descriptios" className="block text-sm font-medium text-gray-700 mb-2">
-                Description (Optional)
-              </label>
-              <textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => updateFormData('description', e.target.value)}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
-                placeholder="Brief description of your organization..."
+            {/* Authentication Fields */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Account Information</h3>
+              
+              <TextInput
+                id="email"
+                label="Email"
+                type="email"
+                value={credentials.email}
+                onChange={(value) => updateCredentials('email', value)}
+                placeholder="your-email@example.com"
+                required
               />
+
+              <div className="grid md:grid-cols-2 gap-6">
+                <TextInput
+                  id="password"
+                  label="Password"
+                  type="password"
+                  value={credentials.password}
+                  onChange={(value) => updateCredentials('password', value)}
+                  placeholder="Enter secure password"
+                  required
+                />
+
+                <TextInput
+                  id="confirmPassword"
+                  label="Confirm Password"
+                  type="password"
+                  value={credentials.confirmPassword}
+                  onChange={(value) => updateCredentials('confirmPassword', value)}
+                  placeholder="Confirm your password"
+                  required
+                />
+              </div>
             </div>
 
-            {formData.organizationType === 'masjid' && (
-              <>
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Amenities (optional)</label>
+            {/* Organization Details */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Organization Details</h3>
+              
+              <TextInput
+                id="organizationName"
+                label="Organization Name"
+                value={formData.organizationName}
+                onChange={(value) => updateFormData('organizationName', value)}
+                placeholder="e.g., Al-Noor Islamic Center"
+                required
+              />
+
+              <OrganizationTypeSelect
+                organizationType={formData.organizationType}
+                onOrganizationTypeChange={(value) => updateFormData('organizationType', value)}
+              />
+
+              <div>
+                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+                  Description (Optional)
+                </label>
+                <textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => updateFormData('description', e.target.value)}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
+                  placeholder="Brief description of your organization..."
+                />
+              </div>
+
+              {formData.organizationType === 'masjid' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Amenities (Optional)</label>
                   <div className="grid grid-cols-2 gap-2">
                     <label className="flex items-center space-x-2">
                       <input type="checkbox" checked={formData.amenities.street_parking} onChange={() => setFormData(prev => ({ ...prev, amenities: { ...prev.amenities, street_parking: !prev.amenities.street_parking } }))} />
@@ -234,133 +298,152 @@ export default function ApplyPage() {
                     </label>
                   </div>
                 </div>
-              </>
-            )}
+              )}
+            </div>
 
-            <div className="grid md:grid-cols-2 gap-6">
+            {/* Address Information */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Address Information</h3>
+
+              <TextInput
+                id="address"
+                label="Street Address"
+                value={formData.address}
+                onChange={(value) => updateFormData('address', value)}
+                placeholder="123 Sesame Street"
+              />
+
+              <Select
+                id="country"
+                label="Country"
+                value={formData.country}
+                options={countryOptions}
+                onChange={(value) => updateFormData('country', value)}
+                placeholder="Select a country..."
+                required
+              />
+
+              <Select
+                id="provinceState"
+                label="Province/State"
+                value={formData.provinceState}
+                options={stateOptions}
+                onChange={(value) => updateFormData('provinceState', value)}
+                placeholder="Select a province/state..."
+                disabled={!formData.country}
+                required
+              />
+
+              <Select
+                id="city"
+                label="City"
+                value={formData.city}
+                options={cityOptions}
+                onChange={(value) => updateFormData('city', value)}
+                placeholder="Select a city..."
+                disabled={!formData.country || !formData.provinceState}
+                required
+              />
+
+              <TextInput
+                id="postalCode"
+                label="Postal Code"
+                value={formData.postalCode}
+                onChange={(value) => updateFormData('postalCode', value)}
+                placeholder="L1T 1X5"
+                required
+              />
+            </div>
+
+            {/* Contact Information */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Contact Information</h3>
+              
               <TextInput
                 id="contactName"
-                label="Contact Name"
+                label="Contact Person Name"
                 value={formData.contactName}
                 onChange={(value) => updateFormData('contactName', value)}
                 placeholder="Full name"
                 required
               />
 
-              <TextInput
-                id="contactEmail"
-                label="Contact Email"
-                type="email"
-                value={formData.contactEmail}
-                onChange={(value) => updateFormData('contactEmail', value)}
-                placeholder="email@example.com"
-                required
-              />
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <label htmlFor="contactEmail" className="block text-sm font-medium text-gray-700 mb-2">
+                    Contact Email
+                  </label>
+                  <input
+                    type="email"
+                    id="contactEmail"
+                    value={formData.contactEmail}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500"
+                    placeholder="Same as login email"
+                    disabled
+                  />
+                  <p className="text-xs text-gray-500 mt-1">This will be the same as your login email</p>
+                </div>
+
+                <TextInput
+                  id="contactPhone"
+                  label="Contact Phone (Optional)"
+                  type="tel"
+                  value={formData.contactPhone}
+                  onChange={(value) => updateFormData('contactPhone', value)}
+                  placeholder="(555) 555-5555"
+                />
+              </div>
             </div>
 
-            <TextInput
-              id="contactPhone"
-              label="Contact Phone"
-              type="tel"
-              value={formData.contactPhone}
-              onChange={(value) => updateFormData('contactPhone', value)}
-              placeholder="(555) 555-5555"
-              required
-            />
-
-            <TextInput
-              id="address"
-              label="Address (Optional)"
-              value={formData.address}
-              onChange={(value) => updateFormData('address', value)}
-              placeholder="123 Sesame Street"
-            />
-
-            <div className="grid md:grid-cols-2 gap-6">
-              <Select
-                id="country"
-                label="Country (Optional)"
-                value={formData.country}
-                options={countryOptions}
-                onChange={(value) => updateFormData('country', value)}
-                placeholder="Select a country..."
-              />
-
-              <Select
-                id="provinceState"
-                label="Province/State (Optional)"
-                value={formData.provinceState}
-                options={stateOptions}
-                onChange={(value) => updateFormData('provinceState', value)}
-                placeholder="Select a province/state..."
-                disabled={!formData.country}
-              />
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-6">
-              <Select
-                id="city"
-                label="City (Optional)"
-                value={formData.city}
-                options={cityOptions}
-                onChange={(value) => updateFormData('city', value)}
-                placeholder="Select a city..."
-                disabled={!formData.country || !formData.provinceState}
-              />
+            {/* Online Presence */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Online Presence (Optional)</h3>
 
               <TextInput
-                id="postalCode"
-                label="Postal Code (Optional)"
-                value={formData.postalCode}
-                onChange={(value) => updateFormData('postalCode', value)}
-                placeholder="L1T 1X5"
-              />
-            </div>
-
-            <TextInput
-              id="website"
-              label="Website (Optional)"
-              type="url"
-              value={formData.website}
-              onChange={(value) => updateFormData('website', value)}
-              placeholder="https://yourorganization.com"
-            />
-
-            <TextInput
-              id="donateLink"
-              label="Donation Link (Optional)"
-              type="url"
-              value={formData.donateLink}
-              onChange={(value) => updateFormData('donateLink', value)}
-              placeholder="https://donations.yourorganization.com"
-            />
-
-            <div className="grid md:grid-cols-3 gap-6">
-              <TextInput
-                id="facebook"
-                label="Facebook (Optional)"
+                id="website"
+                label="Website URL"
                 type="url"
-                value={formData.facebook}
-                onChange={(value) => updateFormData('facebook', value)}
-                placeholder="https://facebook.com/yourpage"
+                value={formData.website}
+                onChange={(value) => updateFormData('website', value)}
+                placeholder="https://yourorganization.com"
               />
 
-              <TextInput
-                id="instagram"
-                label="Instagram (Optional)"
-                type="url"
-                value={formData.instagram}
-                onChange={(value) => updateFormData('instagram', value)}
-                placeholder="https://instagram.com/yourprofile"
-              />
+              <div className="grid md:grid-cols-3 gap-6">
+                <TextInput
+                  id="facebook"
+                  label="Facebook Page"
+                  type="url"
+                  value={formData.facebook}
+                  onChange={(value) => updateFormData('facebook', value)}
+                  placeholder="https://facebook.com/yourpage"
+                />
+
+                <TextInput
+                  id="instagram"
+                  label="Instagram"
+                  type="url"
+                  value={formData.instagram}
+                  onChange={(value) => updateFormData('instagram', value)}
+                  placeholder="https://instagram.com/yourprofile"
+                />
+
+                <TextInput
+                  id="twitter"
+                  label="Twitter"
+                  type="url"
+                  value={formData.twitter}
+                  onChange={(value) => updateFormData('twitter', value)}
+                  placeholder="https://twitter.com/yourprofile"
+                />
+              </div>
 
               <TextInput
-                id="twitter"
-                label="Twitter (Optional)"
+                id="donateLink"
+                label="Donation URL"
                 type="url"
-                value={formData.twitter}
-                onChange={(value) => updateFormData('twitter', value)}
-                placeholder="https://twitter.com/yourprofile"
+                value={formData.donateLink}
+                onChange={(value) => updateFormData('donateLink', value)}
+                placeholder="https://donations.yourorganization.com"
               />
             </div>
 
@@ -373,10 +456,10 @@ export default function ApplyPage() {
               </Link>
               <SubmitButton
                 isSubmitting={isSubmitting}
-                submittingText="Submitting..."
+                submittingText="Creating Account & Submitting..."
                 className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 py-2 px-6"
               >
-                Submit Application
+                Create Account & Submit Application
               </SubmitButton>
             </div>
           </form>

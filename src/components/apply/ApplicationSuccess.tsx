@@ -10,9 +10,9 @@ export default function ApplicationSuccess() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Application Submitted!</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Account Created & Application Submitted!</h2>
           <p className="text-black mb-6">
-            Thank you for applying. We&apos;ll review your application and get back to you via email within 3-5 business days.
+            Your account has been created and application submitted successfully. Please check your email to verify your account, then we&apos;ll review your application and get back to you within 3-5 business days.
           </p>
           <Link
             href="/"
