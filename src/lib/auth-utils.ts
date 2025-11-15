@@ -16,7 +16,7 @@ export function getRedirectPath(email: string): string {
   }
   
   // Default to organization profile for regular organizations
-  return '/org/profile'
+  return '/org'
 }
 
 /**

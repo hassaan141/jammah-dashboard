@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { getUserRole } from '@/lib/auth-utils'
 import AdminNavigation from '../../components/AdminNavigation'
 
 export default async function AdminLayout({
@@ -14,11 +15,9 @@ export default async function AdminLayout({
     redirect('/signin')
   }
 
-  // Only allow admin email from environment variable
-  const adminEmail = process.env.ADMIN_EMAIL
-  const isAdmin = user.email === adminEmail
-
-  if (!isAdmin) {
+  // Check if user has admin role
+  const userRole = getUserRole(user.email || '')
+  if (userRole !== 'admin') {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="bg-white rounded-lg shadow-lg p-8 max-w-md text-center">
