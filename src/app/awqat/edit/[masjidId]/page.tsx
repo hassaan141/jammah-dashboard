@@ -44,6 +44,12 @@ export default function AwqatEditMasjidPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
+  // ingestion key UI state
+  const [creatingKey, setCreatingKey] = useState(false)
+  const [oneTimeSecret, setOneTimeSecret] = useState<string | null>(null)
+  const [keyError, setKeyError] = useState<string | null>(null)
+  const [keyCreated, setKeyCreated] = useState(false)
+
   // Form data
   const [formData, setFormData] = useState({
     id: '',
@@ -198,6 +204,7 @@ export default function AwqatEditMasjidPage() {
           instagram: formData.instagram || null,
           twitter: formData.twitter || null,
           prayer_times_url: formData.prayer_times_url || null,
+          donate_link: formData.donate_link || null,
           updated_at: new Date().toISOString()
         })
         .eq('id', masjidId)
@@ -228,6 +235,57 @@ export default function AwqatEditMasjidPage() {
 
   const handleBack = () => {
     router.push('/awqat')
+  }
+
+  const handleCreateIngestionKey = async () => {
+    if (!masjidId) return
+    setCreatingKey(true)
+    setKeyError(null)
+    try {
+      const sessionRes = await supabase.auth.getSession()
+      const session = (sessionRes as any)?.data?.session
+      const token = session?.access_token
+      if (!token) {
+        setKeyError('No active session')
+        setCreatingKey(false)
+        return
+      }
+
+      const res = await fetch('/api/masjid-ingestion-key', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ organizationId: masjidId }),
+      })
+
+      if (res.status === 201) {
+        const json = await res.json()
+        setOneTimeSecret(json.secret)
+        setKeyCreated(true)
+      } else if (res.status === 409) {
+        setKeyError('An ingestion key already exists for this organization.')
+        setKeyCreated(true)
+      } else {
+        const json = await res.json().catch(() => ({}))
+        setKeyError(json?.error || 'Failed to create ingestion key')
+      }
+    } catch (err: any) {
+      setKeyError(err?.message || 'Network error')
+    } finally {
+      setCreatingKey(false)
+    }
+  }
+
+  const handleCopySecret = async () => {
+    if (!oneTimeSecret) return
+    try {
+      await navigator.clipboard.writeText(oneTimeSecret)
+      setOneTimeSecret(null) // hide after copy — never show again
+    } catch {
+      setKeyError('Failed to copy to clipboard')
+    }
   }
 
   if (loading) {
@@ -594,6 +652,46 @@ export default function AwqatEditMasjidPage() {
               </button>
             </div>
           </form>
+
+          {/* Google Sheet Config Section */}
+          <div className="mt-8 pt-6 border-t border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Google Sheet Integration</h3>
+            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-4">
+              <p className="text-sm text-yellow-800">
+                Generate a secure key for Google Sheets integration. This can only be done once per organization.
+              </p>
+            </div>
+            
+            <button
+              type="button"
+              onClick={handleCreateIngestionKey}
+              disabled={creatingKey || keyCreated}
+              className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {creatingKey ? 'Creating...' : (keyCreated ? 'Ingestion Key Created' : 'Get Google Sheet Config')}
+            </button>
+
+            {keyError && (
+              <div className="mt-3 text-sm text-red-600">{keyError}</div>
+            )}
+
+            {oneTimeSecret && (
+              <div className="mt-4 p-4 bg-gray-50 border rounded-md">
+                <p className="text-sm text-gray-700 mb-2">
+                  Copy this secret now — it will only be shown once:
+                </p>
+                <pre className="bg-white p-3 border rounded text-xs overflow-x-auto font-mono">
+                  {oneTimeSecret}
+                </pre>
+                <button
+                  onClick={handleCopySecret}
+                  className="mt-2 bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700"
+                >
+                  Copy & Hide
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
