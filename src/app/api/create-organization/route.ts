@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
         organizationData.country
       ].filter(Boolean).join(', ')
       
-      const apiKey = process.env.NEXT_PUBLIC_OPENROUTE_API
+      const apiKey = process.env.OPENROUTE_API
       if (apiKey && addressString) {
         const url = `https://api.openrouteservice.org/geocode/search?api_key=${apiKey}&text=${encodeURIComponent(addressString)}`
         const response = await fetch(url)

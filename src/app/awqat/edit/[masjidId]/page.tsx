@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { City } from 'country-state-city'
+import { id } from 'date-fns/locale'
 
 interface Masjid {
   id: string
@@ -29,6 +30,7 @@ interface Masjid {
   instagram?: string
   twitter?: string
   prayer_times_url?: string
+  donate_link?: string
 }
 
 export default function AwqatEditMasjidPage() {
@@ -44,6 +46,7 @@ export default function AwqatEditMasjidPage() {
 
   // Form data
   const [formData, setFormData] = useState({
+    id: '',
     name: '',
     description: '',
     amenities: {
@@ -66,6 +69,8 @@ export default function AwqatEditMasjidPage() {
     instagram: '',
     twitter: '',
     prayer_times_url: ''
+    ,
+    donate_link: ''
   })
 
   const supabase = createClient()
@@ -100,6 +105,7 @@ export default function AwqatEditMasjidPage() {
 
         setMasjid(data)
         setFormData({
+          id: data.id,
           name: data.name || '',
           description: data.description || '',
           amenities: normalizeAmenities(data.amenities),
@@ -115,7 +121,8 @@ export default function AwqatEditMasjidPage() {
           facebook: data.facebook || '',
           instagram: data.instagram || '',
           twitter: data.twitter || '',
-          prayer_times_url: data.prayer_times_url || ''
+          prayer_times_url: data.prayer_times_url || '',
+          donate_link: data.donate_link || ''
         })
       } catch (error) {
         console.error('Error loading masjid:', error)
@@ -174,6 +181,7 @@ export default function AwqatEditMasjidPage() {
       const { error } = await supabase
         .from('organizations')
         .update({
+          id: formData.id,
           name: formData.name,
           description: formData.description || null,
           amenities: formData.amenities,
@@ -282,6 +290,20 @@ export default function AwqatEditMasjidPage() {
             <div className="text-green-800">{success}</div>
           </div>
         )}
+
+      <div>
+          <label htmlFor="id" className="block text-sm font-medium text-black mb-1">Masjid ID</label>
+          <input
+            type="text"
+            id="id"
+            name="id"
+            value={formData.id}
+            readOnly
+            className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-700 cursor-text font-mono"
+            aria-readonly="true"
+            tabIndex={0}
+          />
+        </div>
 
         <div className="bg-white shadow rounded-lg p-6">
           <form onSubmit={handleSave} className="space-y-6">
@@ -502,6 +524,21 @@ export default function AwqatEditMasjidPage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
               />
             </div>
+
+              <div>
+                <label htmlFor="donate_link" className="block text-sm font-medium text-black mb-1">
+                  Donate Link
+                </label>
+                <input
+                  type="url"
+                  id="donate_link"
+                  name="donate_link"
+                  value={formData.donate_link}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+                  placeholder="https://"
+                />
+              </div>
 
             <div className="grid md:grid-cols-3 gap-6">
               <div>

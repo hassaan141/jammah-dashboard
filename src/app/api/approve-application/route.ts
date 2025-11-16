@@ -86,8 +86,7 @@ export async function POST(request: NextRequest) {
         application.country
       ].filter(Boolean).join(', ')
 
-      // Prefer a server-side API key `OPENROUTE_API_KEY`. Fall back to NEXT_PUBLIC_OPENROUTE_API if present.
-      const geoApiKey = process.env.OPENROUTE_API_KEY || process.env.NEXT_PUBLIC_OPENROUTE_API || ''
+      const geoApiKey = process.env.OPENROUTE_API_KEY
       let lat: number | null = null
       let lng: number | null = null
 

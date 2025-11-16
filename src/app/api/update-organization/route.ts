@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
         country
       ].filter(Boolean).join(', ')
 
-      const geoApiKey = process.env.OPENROUTE_API_KEY || process.env.NEXT_PUBLIC_OPENROUTE_API || ''
+      const geoApiKey = process.env.OPENROUTE_API_KEY
       
       if (geoApiKey && addressString.trim()) {
         try {

@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ lat: null, lng: null })
     }
 
-    const apiKey = process.env.NEXT_PUBLIC_OPENROUTE_API || '5b3ce3597851110001cf6248bfe86ed54c294ac8af42b6ea19ee7013'
+    const apiKey = process.env.OPENROUTE_API || ''
     
     const response = await fetch(
       `https://api.openrouteservice.org/geocode/search?api_key=${apiKey}&text=${encodeURIComponent(address)}`,
