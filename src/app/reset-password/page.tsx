@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 export default function ResetPasswordPage() {
   const [newPassword, setNewPassword] = useState('')
@@ -10,22 +10,32 @@ export default function ResetPasswordPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [user, setUser] = useState<any>(null)
+  const [isValidToken, setIsValidToken] = useState(false)
+  const [isVerifying, setIsVerifying] = useState(true)
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
 
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
+    const verifyUser = async () => {
+      // Check if this is a password recovery session
+      const { data: { session } } = await supabase.auth.getSession()
       
-      // Check if user needs password reset
-      if (!user?.user_metadata?.requires_password_reset) {
-        router.push('/org') // Redirect if password reset not required
+      if (session) {
+        // Valid recovery token - user is authenticated
+        setUser(session.user)
+        setIsValidToken(true)
+        setIsVerifying(false)
+        return
       }
+
+      // No valid session - invalid or expired token
+      setIsVerifying(false)
+      setError('Invalid or expired reset link. Please request a new password reset.')
     }
 
-    checkUser()
-  }, [router, supabase.auth])
+    verifyUser()
+  }, [supabase.auth])
 
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -59,7 +69,9 @@ export default function ResetPasswordPage() {
       }
 
       alert('Password updated successfully! You can now access your organization dashboard.')
-      router.push('/org')
+      // Sign out after password reset to ensure clean session
+      await supabase.auth.signOut()
+      router.push('/signin')
       
     } catch (err) {
       setError('An unexpected error occurred')
@@ -69,16 +81,38 @@ export default function ResetPasswordPage() {
     }
   }
 
-  if (!user) {
+  if (isVerifying) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+          <p className="mt-4 text-gray-600">Verifying reset link...</p>
         </div>
       </div>
     )
   }
+
+  if (!isValidToken || !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-8">
+          <div className="text-center">
+            <h2 className="text-3xl font-extrabold text-gray-900">
+              Reset Link Invalid
+            </h2>
+            <p className="mt-2 text-sm text-gray-600">
+              {error || 'This password reset link is no longer valid.'}
+            </p>
+            <button
+              onClick={() => router.push('/forgot-password')}
+              className="mt-4 text-blue-600 hover:text-blue-700 font-medium"
+            >
+              Request a new password reset
+            </button>
+          </div>
+        </div>
+      </div>
+    )
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
