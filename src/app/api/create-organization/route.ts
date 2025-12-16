@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { find as findTimezone } from 'geo-tz'
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,6 +33,7 @@ export async function POST(request: NextRequest) {
     // Step 1: Geocode address (optional)
     let lat = null
     let lng = null
+    let timezone = null
     
     try {
       const addressString = [
@@ -51,6 +53,16 @@ export async function POST(request: NextRequest) {
             const [longitude, latitude] = data.features[0].geometry.coordinates
             lat = latitude
             lng = longitude
+            
+            // Get timezone from lat/long
+            try {
+              const timezones = findTimezone(lat, lng)
+              if (timezones && timezones.length > 0) {
+                timezone = timezones[0]
+              }
+            } catch (tzError) {
+              console.error('Timezone detection failed:', tzError)
+            }
           }
         }
       }
@@ -81,6 +93,7 @@ export async function POST(request: NextRequest) {
         prayer_times_url: organizationData.prayer_times_url,
         latitude: lat,
         longitude: lng,
+        timezone: timezone,
       })
       .select()
       .single()
