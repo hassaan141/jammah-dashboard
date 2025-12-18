@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { find as findTimezone } from 'geo-tz'
+// @ts-ignore - tz-lookup doesn't have TypeScript declarations
+import tzLookup from 'tz-lookup'
 
 export async function POST(request: NextRequest) {
   try {
@@ -105,10 +106,7 @@ export async function POST(request: NextRequest) {
               
               // Get timezone from lat/long
               try {
-                const timezones = findTimezone(lat, lng)
-                if (timezones && timezones.length > 0) {
-                  timezone = timezones[0]
-                }
+                timezone = tzLookup(lat, lng)
               } catch (tzError) {
                 console.error('Timezone detection failed:', tzError)
               }
