@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { find as findTimezone } from 'geo-tz'
 
 interface StatusDropdownProps {
   applicationId: string
@@ -45,11 +44,19 @@ export default function StatusDropdown({ applicationId, currentStatus, organizat
                 latitude = geocodeData.lat
                 longitude = geocodeData.lng
                 
-                // Get timezone from lat/long
+                // Get timezone from lat/long via API
                 try {
-                  const timezones = findTimezone(latitude, longitude)
-                  if (timezones && timezones.length > 0) {
-                    timezone = timezones[0]
+                  const timezoneResponse = await fetch('/api/timezone', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ lat: latitude, lng: longitude })
+                  })
+                  
+                  if (timezoneResponse.ok) {
+                    const timezoneData = await timezoneResponse.json()
+                    if (timezoneData.timezone) {
+                      timezone = timezoneData.timezone
+                    }
                   }
                 } catch (tzError) {
                   console.warn('Timezone detection failed:', tzError)
