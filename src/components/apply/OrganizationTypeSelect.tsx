@@ -6,14 +6,16 @@ interface OrganizationTypeSelectProps {
 }
 
 const ORGANIZATION_TYPES = [
-  { value: 'masjid', label: 'Masjid' },
+  // Add this placeholder option at the top
+  { value: '', label: 'Select organization type' }, 
+  { value: 'masjid', label: 'Masjid / Mussalah' },
+  { value: 'msa', label: 'MSA' },
   { value: 'islamic-school', label: 'Islamic School' },
   { value: 'sisters-group', label: 'Sisters Group' },
   { value: 'youth-group', label: 'Youth Group' },
   { value: 'book-club', label: 'Book Club' },
   { value: 'book-store', label: 'Book Store' },
   { value: 'run-club', label: 'Run Club' },
-  // removed 'other' option to match mobile UX
 ]
 
 export default function OrganizationTypeSelect({
@@ -25,12 +27,12 @@ export default function OrganizationTypeSelect({
       <SelectInput
         id="organizationType"
         label="Organization Type"
-        value={organizationType}
+        // If organizationType is empty, it will show the placeholder
+        value={organizationType} 
         onChange={onOrganizationTypeChange}
         options={ORGANIZATION_TYPES}
         required
       />
-      
     </div>
   )
 }
