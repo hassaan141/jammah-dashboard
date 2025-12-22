@@ -16,7 +16,7 @@ export default function ApplyPage() {
   const [credentials, setCredentials] = useState({ email: '', password: '', confirmPassword: '' })
   const [formData, setFormData] = useState({
     organizationName: '',
-    organizationType: 'masjid',
+    organizationType: '',
     description: '',
     amenities: {
       street_parking: false,
@@ -121,7 +121,15 @@ export default function ApplyPage() {
         setMessage('Passwords do not match')
         return
       }
-      if (!formData.organizationName || !formData.contactName || !formData.country || !formData.provinceState || !formData.city || !formData.postalCode) {
+      if (
+        !formData.organizationName || 
+        !formData.organizationType || 
+        !formData.contactName || 
+        !formData.country || 
+        !formData.provinceState || 
+        !formData.city || 
+        !formData.postalCode
+      ) {
         setMessage('Please fill in all required fields')
         return
       }
@@ -270,7 +278,7 @@ export default function ApplyPage() {
 
               <div>
                 <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-                  Description (Optional)
+                  Description
                 </label>
                 <textarea
                   id="description"
