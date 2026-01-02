@@ -680,7 +680,7 @@ export default function AwqatEditMasjidPage() {
                 <p className="text-sm text-gray-700 mb-2">
                   Copy this secret now — it will only be shown once:
                 </p>
-                <pre className="bg-white p-3 border rounded text-xs overflow-x-auto font-mono">
+                <pre className="bg-white p-3 border rounded text-xs overflow-x-auto font-mono text-gray-900">
                   {oneTimeSecret}
                 </pre>
                 <button
