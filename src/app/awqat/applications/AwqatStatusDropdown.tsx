@@ -28,6 +28,7 @@ export default function AwqatStatusDropdown({ applicationId, currentStatus, orga
           // First, geocode the address to get coordinates
           let latitude = null
           let longitude = null
+          let timezone = null
           
           if (organizationData.address && organizationData.city && organizationData.province_state) {
             const fullAddress = `${organizationData.address}, ${organizationData.city}, ${organizationData.province_state}, ${organizationData.country || 'Canada'}`
@@ -44,6 +45,24 @@ export default function AwqatStatusDropdown({ applicationId, currentStatus, orga
                 if (geocodeData.lat && geocodeData.lng) {
                   latitude = geocodeData.lat
                   longitude = geocodeData.lng
+                  
+                  // Get timezone from lat/long via API
+                  try {
+                    const timezoneResponse = await fetch('/api/timezone', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ lat: latitude, lng: longitude })
+                    })
+                    
+                    if (timezoneResponse.ok) {
+                      const timezoneData = await timezoneResponse.json()
+                      if (timezoneData.timezone) {
+                        timezone = timezoneData.timezone
+                      }
+                    }
+                  } catch (tzError) {
+                    console.warn('Timezone detection failed:', tzError)
+                  }
                 }
               }
             } catch (geocodeError) {
@@ -74,7 +93,8 @@ export default function AwqatStatusDropdown({ applicationId, currentStatus, orga
               twitter: organizationData.twitter || null,
               prayer_times_url: organizationData.prayer_times_url || null,
               latitude: latitude,
-              longitude: longitude
+              longitude: longitude,
+              timezone: timezone
             })
 
           if (orgError) {

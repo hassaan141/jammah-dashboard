@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
       const getUserRes = await supabase.auth.getUser(token)
       currentUser = (getUserRes as any)?.data?.user
       // Allow both the Awqat admin and the main admin to create keys
-      const allowedEmails = [process.env.AQWAT_ADMIN_EMAIL, process.env.ADMIN_EMAIL]
+      const allowedEmails = [process.env.AWQAT_ADMIN_EMAIL, process.env.ADMIN_EMAIL]
       if (!currentUser || !allowedEmails.includes(currentUser.email)) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
       }
