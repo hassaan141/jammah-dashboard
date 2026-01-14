@@ -11,7 +11,7 @@ export function getRedirectPath(email: string): string {
   }
   
   // Awqat dashboard for BC masjid admin
-  if (normalizedEmail === 'info@awqat.net') {
+  if (normalizedEmail === 'infoawqat@gmail.com') {
     return '/awqat'
   }
   
@@ -34,7 +34,7 @@ export function getUserRole(email: string): UserRole {
     return 'admin'
   }
   
-  if (normalizedEmail === 'info@awqat.net') {
+  if (normalizedEmail === 'infoawqat@gmail.com') {
     return 'awqat'
   }
   
