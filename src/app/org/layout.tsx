@@ -27,24 +27,7 @@ export default async function OrgLayout({
     .single()
 
   if (!profile?.is_org || !profile?.org_id) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Access Pending</h2>
-          <p className="text-gray-600 mb-6">
-            Your organization application is still being reviewed. You'll receive an email once it's approved.
-          </p>
-          <form action="/auth/signout" method="post">
-            <button
-              type="submit"
-              className="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg"
-            >
-              Sign Out
-            </button>
-          </form>
-        </div>
-      </div>
-    )
+    redirect('/')
   }
 
   // Get organization details

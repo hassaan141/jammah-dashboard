@@ -1,10 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { organizationSchema } from '@/lib/validation'
+import { z } from 'zod'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { 
+
+    // Validate and sanitize input
+    const validationResult = organizationSchema.safeParse(body)
+
+    if (!validationResult.success) {
+      return NextResponse.json({
+        error: 'Invalid input data',
+        details: validationResult.error.issues
+      }, { status: 400 })
+    }
+
+    const {
       organizationId,
       name,
       address,
@@ -20,7 +33,7 @@ export async function POST(request: NextRequest) {
       instagram,
       twitter,
       donate_link
-    } = body
+    } = validationResult.data
 
     // Get user from server-side session
     const supabase = await createClient()
@@ -44,7 +57,7 @@ export async function POST(request: NextRequest) {
     // If organizationId is provided, check it matches user's org_id
     // If not provided, use the user's org_id
     const targetOrgId = organizationId || profile.org_id
-    
+
     if (organizationId && profile.org_id !== organizationId) {
       return NextResponse.json({ error: 'You do not have permission to edit this organization' }, { status: 403 })
     }
@@ -66,7 +79,7 @@ export async function POST(request: NextRequest) {
       ].filter(Boolean).join(', ')
 
       const geoApiKey = process.env.OPENROUTE_API_KEY
-      
+
       if (geoApiKey && addressString.trim()) {
         try {
           const url = `https://api.openrouteservice.org/geocode/search?api_key=${encodeURIComponent(geoApiKey)}&text=${encodeURIComponent(addressString)}`
@@ -129,19 +142,19 @@ export async function POST(request: NextRequest) {
 
     if (updateError) {
       console.error('Error updating organization:', updateError)
-      return NextResponse.json({ 
-        error: updateError.message || 'Failed to update organization' 
+      return NextResponse.json({
+        error: updateError.message || 'Failed to update organization'
       }, { status: 500 })
     }
 
     if (!updateResult || updateResult.length === 0) {
       console.error('No rows updated - possible RLS issue')
-      return NextResponse.json({ 
-        error: 'No organization was updated. Check permissions.' 
+      return NextResponse.json({
+        error: 'No organization was updated. Check permissions.'
       }, { status: 403 })
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
       message: 'Organization updated successfully',
       coordinates: lat !== null && lng !== null ? { latitude: lat, longitude: lng } : null
