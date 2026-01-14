@@ -54,7 +54,7 @@ export default function ApplyPage() {
       })),
     [],
   )
-  
+
   const stateOptions = useMemo<Option[]>(() => {
     if (!formData.country) return []
     return State.getStatesOfCountry(formData.country).map((s) => ({
@@ -62,7 +62,7 @@ export default function ApplyPage() {
       value: s.isoCode,
     }))
   }, [formData.country])
-  
+
   const cityOptions = useMemo<Option[]>(() => {
     if (!formData.country || !formData.provinceState) return []
     return City.getCitiesOfState(formData.country, formData.provinceState).map((ct) => ({
@@ -78,7 +78,7 @@ export default function ApplyPage() {
   const updateFormData = (field: string, value: string) => {
     setFormData(prev => {
       const newData = { ...prev, [field]: value }
-      
+
       // Reset dependent fields when parent changes
       if (field === 'country') {
         newData.provinceState = ''
@@ -86,7 +86,7 @@ export default function ApplyPage() {
       } else if (field === 'provinceState') {
         newData.city = ''
       }
-      
+
       return newData
     })
   }
@@ -113,7 +113,7 @@ export default function ApplyPage() {
 
     try {
       const missingFields: string[] = []
-      
+
       if (!credentials.email) missingFields.push('Email')
       if (!credentials.password) missingFields.push('Password')
       if (!credentials.confirmPassword) missingFields.push('Confirm Password')
@@ -125,13 +125,13 @@ export default function ApplyPage() {
       if (!formData.provinceState) missingFields.push('Province/State')
       if (!formData.city) missingFields.push('City')
       if (!formData.postalCode) missingFields.push('Postal Code')
-      
+
       if (missingFields.length > 0) {
         setMessage(`Please fill in the following required fields: ${missingFields.join(', ')}`)
         setIsSubmitting(false)
         return
       }
-      
+
       if (credentials.password !== credentials.confirmPassword) {
         setMessage('Passwords do not match')
         setIsSubmitting(false)
@@ -145,7 +145,7 @@ export default function ApplyPage() {
         email: credentials.email,
         password: credentials.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/verify`,
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
           data: {
             user_type: 'organization',
             organization_name: formData.organizationName,
@@ -230,7 +230,7 @@ export default function ApplyPage() {
             {/* Authentication Fields */}
             <div className="space-y-4">
               <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Account Information</h3>
-              
+
               <TextInput
                 id="email"
                 label="Email"
@@ -267,7 +267,7 @@ export default function ApplyPage() {
             {/* Organization Details */}
             <div className="space-y-4">
               <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Organization Details</h3>
-              
+
               <TextInput
                 id="organizationName"
                 label="Organization Name"
@@ -301,42 +301,42 @@ export default function ApplyPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Amenities (Optional)</label>
                   <div className="grid grid-cols-2 gap-2">
                     <label className="flex items-center space-x-2">
-                      <input 
-                        type="checkbox" 
-                        checked={formData.amenities.street_parking} 
-                        onChange={(e) => updateAmenity('street_parking', e.target.checked)} 
+                      <input
+                        type="checkbox"
+                        checked={formData.amenities.street_parking}
+                        onChange={(e) => updateAmenity('street_parking', e.target.checked)}
                       />
                       <span className="text-sm text-black">Street parking</span>
                     </label>
                     <label className="flex items-center space-x-2">
-                      <input 
-                        type="checkbox" 
-                        checked={formData.amenities.women_washroom} 
-                        onChange={(e) => updateAmenity('women_washroom', e.target.checked)} 
+                      <input
+                        type="checkbox"
+                        checked={formData.amenities.women_washroom}
+                        onChange={(e) => updateAmenity('women_washroom', e.target.checked)}
                       />
                       <span className="text-sm text-black">Women washroom</span>
                     </label>
                     <label className="flex items-center space-x-2">
-                      <input 
-                        type="checkbox" 
-                        checked={formData.amenities.on_site_parking} 
-                        onChange={(e) => updateAmenity('on_site_parking', e.target.checked)} 
+                      <input
+                        type="checkbox"
+                        checked={formData.amenities.on_site_parking}
+                        onChange={(e) => updateAmenity('on_site_parking', e.target.checked)}
                       />
                       <span className="text-sm text-black">On-site parking</span>
                     </label>
                     <label className="flex items-center space-x-2">
-                      <input 
-                        type="checkbox" 
-                        checked={formData.amenities.women_prayer_space} 
-                        onChange={(e) => updateAmenity('women_prayer_space', e.target.checked)} 
+                      <input
+                        type="checkbox"
+                        checked={formData.amenities.women_prayer_space}
+                        onChange={(e) => updateAmenity('women_prayer_space', e.target.checked)}
                       />
                       <span className="text-sm text-black">Women prayer space</span>
                     </label>
                     <label className="flex items-center space-x-2">
-                      <input 
-                        type="checkbox" 
-                        checked={formData.amenities.wheelchair_accessible} 
-                        onChange={(e) => updateAmenity('wheelchair_accessible', e.target.checked)} 
+                      <input
+                        type="checkbox"
+                        checked={formData.amenities.wheelchair_accessible}
+                        onChange={(e) => updateAmenity('wheelchair_accessible', e.target.checked)}
                       />
                       <span className="text-sm text-black">Wheelchair accessible</span>
                     </label>
@@ -402,7 +402,7 @@ export default function ApplyPage() {
             {/* Contact Information */}
             <div className="space-y-4">
               <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Contact Information</h3>
-              
+
               <TextInput
                 id="contactName"
                 label="Contact Person Name"

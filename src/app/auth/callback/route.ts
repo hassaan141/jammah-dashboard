@@ -5,7 +5,7 @@ import { getRedirectPath } from '@/lib/auth-utils'
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/org/edit'
+  const next = searchParams.get('next') ?? '/org'
 
   if (code) {
     const supabase = await createClient()
@@ -19,8 +19,8 @@ export async function GET(request: NextRequest) {
         const redirectPath = getRedirectPath(user.email)
         return NextResponse.redirect(`${origin}${redirectPath}`)
       } else {
-        // Fallback to org profile if no email
-        return NextResponse.redirect(`${origin}/org/profile`)
+        // Fallback to org page if no email
+        return NextResponse.redirect(`${origin}/org`)
       }
     }
   }

@@ -11,13 +11,11 @@ export default function ResetTokenHandler() {
     const hash = window.location.hash.substring(1)
     const hashParams = new URLSearchParams(hash)
     const accessToken = hashParams.get('access_token')
-    const refreshToken = hashParams.get('refresh_token')
     const type = hashParams.get('type')
     
-    // If we have reset tokens, redirect to admin reset page
-    if (accessToken && refreshToken && type === 'recovery') {
-      const newUrl = `/admin-reset${window.location.hash}`
-      router.replace(newUrl)
+    // If we have reset tokens, redirect to reset password page
+    if (accessToken && type === 'recovery') {
+      router.replace('/reset-password')
     }
   }, [router])
 
