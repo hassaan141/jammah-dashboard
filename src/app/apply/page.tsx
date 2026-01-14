@@ -112,25 +112,29 @@ export default function ApplyPage() {
     setMessage(null)
 
     try {
-      // Validation
-      if (!credentials.email || !credentials.password || !credentials.confirmPassword) {
-        setMessage('Please fill in email and password fields')
+      const missingFields: string[] = []
+      
+      if (!credentials.email) missingFields.push('Email')
+      if (!credentials.password) missingFields.push('Password')
+      if (!credentials.confirmPassword) missingFields.push('Confirm Password')
+      if (!formData.organizationName) missingFields.push('Organization Name')
+      if (!formData.organizationType) missingFields.push('Organization Type')
+      if (!formData.contactName) missingFields.push('Contact Person Name')
+      if (!formData.contactPhone) missingFields.push('Contact Phone')
+      if (!formData.country) missingFields.push('Country')
+      if (!formData.provinceState) missingFields.push('Province/State')
+      if (!formData.city) missingFields.push('City')
+      if (!formData.postalCode) missingFields.push('Postal Code')
+      
+      if (missingFields.length > 0) {
+        setMessage(`Please fill in the following required fields: ${missingFields.join(', ')}`)
+        setIsSubmitting(false)
         return
       }
+      
       if (credentials.password !== credentials.confirmPassword) {
         setMessage('Passwords do not match')
-        return
-      }
-      if (
-        !formData.organizationName || 
-        !formData.organizationType || 
-        !formData.contactName || 
-        !formData.country || 
-        !formData.provinceState || 
-        !formData.city || 
-        !formData.postalCode
-      ) {
-        setMessage('Please fill in all required fields')
+        setIsSubmitting(false)
         return
       }
 
@@ -184,7 +188,9 @@ export default function ApplyPage() {
 
       if (appError) {
         console.error('Application submission error:', appError)
-        setMessage('Account created but error submitting application. Please contact support.')
+        const errorMsg = appError.message || 'Unknown error'
+        setMessage(`Application error: ${errorMsg}. Please contact support.`)
+        setIsSubmitting(false)
         return
       }
 
@@ -424,11 +430,12 @@ export default function ApplyPage() {
 
                 <TextInput
                   id="contactPhone"
-                  label="Contact Phone (Optional)"
+                  label="Contact Phone"
                   type="tel"
                   value={formData.contactPhone}
                   onChange={(value) => updateFormData('contactPhone', value)}
                   placeholder="(555) 555-5555"
+                  required
                 />
               </div>
             </div>

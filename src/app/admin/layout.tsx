@@ -15,27 +15,9 @@ export default async function AdminLayout({
     redirect('/signin')
   }
 
-  // Check if user has admin role
   const userRole = getUserRole(user.email || '')
   if (userRole !== 'admin') {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h2>
-          <p className="text-gray-600 mb-6">
-            You don&apos;t have permission to access the admin area.
-          </p>
-          <form action="/api/auth/signout" method="post">
-            <button
-              type="submit"
-              className="bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg"
-            >
-              Sign Out
-            </button>
-          </form>
-        </div>
-      </div>
-    )
+    redirect('/')
   }
 
   return (

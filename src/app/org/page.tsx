@@ -12,7 +12,6 @@ import SuccessMessage from '@/components/ui/SuccessMessage'
 const EditableTextInput = lazy(() => import('@/components/forms/EditableTextInput'))
 const ReadOnlyLink = lazy(() => import('@/components/forms/ReadOnlyLink'))
 const OrganizationProfileHeader = lazy(() => import('@/components/org/OrganizationProfileHeader'))
-const AccessPending = lazy(() => import('@/components/org/AccessPending'))
 
 interface Organization {
   id: string
@@ -322,7 +321,7 @@ export default function OrgProfilePage() {
   }
 
   if (error && !organization) {
-    return <AccessPending message={error} />
+    return <ErrorMessage message={error} />
   }
 
   return (

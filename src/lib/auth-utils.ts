@@ -1,42 +1,29 @@
-/**
- * Determines the redirect path based on user email
- */
 export function getRedirectPath(email: string): string {
-  // Normalize email to lowercase for comparison
   const normalizedEmail = email.toLowerCase().trim()
-  
-  // Admin dashboard for Jamah Community App
-  if (normalizedEmail === 'jamahcommunityapp@gmail.com') {
+
+  if (normalizedEmail === process.env.ADMIN_EMAIL?.toLowerCase()) {
     return '/admin'
   }
-  
-  // Awqat dashboard for BC masjid admin
-  if (normalizedEmail === 'infoawqat@gmail.com') {
+
+  if (normalizedEmail === process.env.AWQAT_ADMIN_EMAIL?.toLowerCase()) {
     return '/awqat'
   }
-  
-  // Default to organization profile for regular organizations
+
   return '/org'
 }
 
-/**
- * User role types based on email
- */
 export type UserRole = 'admin' | 'awqat' | 'organization'
 
-/**
- * Gets user role based on email
- */
 export function getUserRole(email: string): UserRole {
   const normalizedEmail = email.toLowerCase().trim()
-  
-  if (normalizedEmail === 'jamahcommunityapp@gmail.com') {
+
+  if (normalizedEmail === process.env.ADMIN_EMAIL?.toLowerCase()) {
     return 'admin'
   }
-  
-  if (normalizedEmail === 'infoawqat@gmail.com') {
+
+  if (normalizedEmail === process.env.AWQAT_ADMIN_EMAIL?.toLowerCase()) {
     return 'awqat'
   }
-  
+
   return 'organization'
 }

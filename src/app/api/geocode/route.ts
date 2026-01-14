@@ -1,15 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { geocodeSchema } from '@/lib/validation'
 
 export async function POST(request: NextRequest) {
   try {
-    const { address } = await request.json()
-    
-    if (!address || !address.trim()) {
+    const body = await request.json()
+
+    // Validate and sanitize input
+    const validationResult = geocodeSchema.safeParse(body)
+
+    if (!validationResult.success) {
       return NextResponse.json({ lat: null, lng: null })
     }
 
+    const { address } = validationResult.data
+
     const apiKey = process.env.OPENROUTE_API || ''
-    
+
     const response = await fetch(
       `https://api.openrouteservice.org/geocode/search?api_key=${apiKey}&text=${encodeURIComponent(address)}`,
       {
@@ -19,18 +25,18 @@ export async function POST(request: NextRequest) {
         }
       }
     )
-    
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)
     }
-    
+
     const data = await response.json()
-    
+
     if (data.features && data.features.length > 0) {
       const [lng, lat] = data.features[0].geometry.coordinates
       return NextResponse.json({ lat, lng })
     }
-    
+
     return NextResponse.json({ lat: null, lng: null })
   } catch (error) {
     console.error('Geocoding error:', error)

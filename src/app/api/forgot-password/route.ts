@@ -1,16 +1,22 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
+import { forgotPasswordSchema } from '@/lib/validation'
 
 export async function POST(request: NextRequest) {
   try {
-    const { email } = await request.json()
+    const body = await request.json()
 
-    if (!email) {
+    // Validate and sanitize input
+    const validationResult = forgotPasswordSchema.safeParse(body)
+
+    if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'Email is required' },
+        { error: 'Invalid email format' },
         { status: 400 }
       )
     }
+
+    const { email } = validationResult.data
 
     const supabase = await createClient()
 

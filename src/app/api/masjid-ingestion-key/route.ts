@@ -1,63 +1,54 @@
 import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
-import { createClient } from '@/lib/supabase/server'
+import { masjidIngestionKeySchema } from '@/lib/validation'
+import { withMultiAdminAuth } from '@/lib/api-helpers'
 
 export async function POST(request: NextRequest) {
-  try {
-    const { organizationId } = await request.json()
-    if (!organizationId) return NextResponse.json({ error: 'organizationId required' }, { status: 400 })
+  const body = await request.json()
 
-    const authorization = request.headers.get('authorization')
-    if (!authorization) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const validationResult = masjidIngestionKeySchema.safeParse(body)
 
-    const token = authorization.replace('Bearer ', '')
-    const supabase = await createClient()
-
-    // verify only the single admin email may create keys
-    let currentUser: any = null
-    try {
-      const getUserRes = await supabase.auth.getUser(token)
-      currentUser = (getUserRes as any)?.data?.user
-      // Allow both the Awqat admin and the main admin to create keys
-      const allowedEmails = [process.env.AWQAT_ADMIN_EMAIL, process.env.ADMIN_EMAIL]
-      if (!currentUser || !allowedEmails.includes(currentUser.email)) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-      }
-    } catch {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
-
-    // ensure only one active key per org
-    const { data: existing, error: selErr } = await supabase
-      .from('masjid_ingestion_keys')
-      .select('organization_id')
-      .eq('organization_id', organizationId)
-      .eq('is_active', true)
-      .limit(1)
-      .maybeSingle()
-
-    if (selErr) return NextResponse.json({ error: selErr.message || 'DB error' }, { status: 500 })
-    if (existing) return NextResponse.json({ error: 'Key already exists' }, { status: 409 })
-
-    // generate secret (50 random bytes -> base64) and store only hash
-    const secret = crypto.randomBytes(50).toString('base64')
-
-    const { error: insErr } = await supabase
-      .from('masjid_ingestion_keys')
-      .insert({
-        organization_id: organizationId,
-        secret_value: secret,
-        ingestion_type: 'sheets_hmac',
-        is_active: true,
-        created_at: new Date().toISOString()
-      })
-
-    if (insErr) return NextResponse.json({ error: insErr.message || 'Insert failed' }, { status: 500 })
-
-    // return plaintext secret only once
-    return NextResponse.json({ secret }, { status: 201 })
-  } catch (error) {
-    console.error(error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  if (!validationResult.success) {
+    return NextResponse.json({
+      error: 'Invalid input data',
+      details: validationResult.error.issues
+    }, { status: 400 })
   }
+
+  const { organizationId } = validationResult.data
+
+  return withMultiAdminAuth(request, async (user, supabase) => {
+    try {
+      const { data: existing, error: selErr } = await supabase
+        .from('masjid_ingestion_keys')
+        .select('organization_id')
+        .eq('organization_id', organizationId)
+        .eq('is_active', true)
+        .limit(1)
+        .maybeSingle()
+
+      if (selErr) return NextResponse.json({ error: selErr.message || 'DB error' }, { status: 500 })
+      if (existing) return NextResponse.json({ error: 'Key already exists' }, { status: 409 })
+
+      const secret = crypto.randomBytes(50).toString('base64')
+
+      const { error: insErr } = await supabase
+        .from('masjid_ingestion_keys')
+        .insert({
+          organization_id: organizationId,
+          secret_value: secret,
+          ingestion_type: 'sheets_hmac',
+          is_active: true,
+          created_at: new Date().toISOString()
+        })
+
+      if (insErr) return NextResponse.json({ error: insErr.message || 'Insert failed' }, { status: 500 })
+
+      return NextResponse.json({ secret }, { status: 201 })
+
+    } catch (error) {
+      console.error(error)
+      return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    }
+  })
 }

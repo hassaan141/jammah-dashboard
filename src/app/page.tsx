@@ -1,14 +1,30 @@
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+'use client'
+
+import { useEffect, useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import ResetTokenHandler from '@/components/ResetTokenHandler'
+import { User } from '@supabase/supabase-js'
 
-export default async function HomePage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+export default function HomePage() {
+  const [user, setUser] = useState<User | null>(null)
+  const router = useRouter()
+  const supabase = createClient()
 
-  // Only redirect if user explicitly wants to go to their dashboard
-  // Remove automatic redirect so users can see the home page
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      setUser(user)
+    }
+    getUser()
+  }, [])
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    setUser(null)
+    router.push('/')
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-blue-50">
@@ -77,11 +93,12 @@ export default async function HomePage() {
                   <Link href="/admin" className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg">
                     Go to Dashboard
                   </Link>
-                  <form action="/auth/signout" method="post" className="inline">
-                    <button type="submit" className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-3 rounded-xl font-semibold transition-colors">
-                      Sign Out
-                    </button>
-                  </form>
+                  <button 
+                    onClick={handleSignOut}
+                    className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-3 rounded-xl font-semibold transition-colors"
+                  >
+                    Sign Out
+                  </button>
                 </div>
               </div>
             )}
