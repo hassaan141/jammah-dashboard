@@ -9,6 +9,8 @@ interface OnlinePresenceSectionProps {
     facebook: string
     instagram: string
     twitter: string
+    whatsapp: string
+    youtube: string
   }
   updateFormData: (field: string, value: string) => void
   isEditMode: boolean
@@ -81,6 +83,24 @@ export default function OnlinePresenceSection({
           value={formData.twitter}
           onChange={(value) => updateFormData('twitter', value)}
           placeholder="https://twitter.com/yourprofile"
+          isEditMode={isEditMode}
+        />
+        <EditableTextInput
+          id="whatsapp"
+          label="WhatsApp"
+          type="url"
+          value={formData.whatsapp}
+          onChange={(value) => updateFormData('whatsapp', value)}
+          placeholder="https://wa.me/1234567890"
+          isEditMode={isEditMode}
+        />
+        <EditableTextInput
+          id="youtube"
+          label="YouTube"
+          type="url"
+          value={formData.youtube}
+          onChange={(value) => updateFormData('youtube', value)}
+          placeholder="https://youtube.com/@yourchannel"
           isEditMode={isEditMode}
         />
       </div>

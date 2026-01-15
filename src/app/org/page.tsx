@@ -37,6 +37,8 @@ interface Organization {
   facebook?: string
   instagram?: string
   twitter?: string
+  whatsapp?: string
+  youtube?: string
   donate_link?: string
   prayer_times_url?: string
   latitude?: number
@@ -65,6 +67,8 @@ interface FormData {
   facebook: string
   instagram: string
   twitter: string
+  whatsapp: string
+  youtube: string
   donate_link: string
 }
 
@@ -99,6 +103,8 @@ export default function OrgProfilePage() {
     facebook: '',
     instagram: '',
     twitter: '',
+    whatsapp: '',
+    youtube: '',
     donate_link: ''
   })
 
@@ -152,6 +158,8 @@ export default function OrgProfilePage() {
       facebook: org.facebook || '',
       instagram: org.instagram || '',
       twitter: org.twitter || '',
+      whatsapp: org.whatsapp || '',
+      youtube: org.youtube || '',
       donate_link: org.donate_link || ''
     })
   }, [normalizeAmenities])
@@ -231,7 +239,7 @@ export default function OrgProfilePage() {
               },
               body: JSON.stringify({ address: addressString })
             })
-            
+
             if (geoResp.ok) {
               const geoData = await geoResp.json()
               if (geoData.lat !== null && geoData.lng !== null) {
@@ -345,238 +353,256 @@ export default function OrgProfilePage() {
             <Suspense fallback={<div className="space-y-6"><div className="h-20 animate-pulse bg-gray-200 rounded"></div><div className="h-20 animate-pulse bg-gray-200 rounded"></div><div className="h-20 animate-pulse bg-gray-200 rounded"></div></div>}>
               <div className="space-y-6">
                 <EditableTextInput
-                id="name"
-                label="Organization Name"
-                value={formData.name}
-                onChange={(value) => updateFormData('name', value)}
-                placeholder="Your Organization Name"
-                required
-                isEditMode={isEditMode}
-              />
+                  id="name"
+                  label="Organization Name"
+                  value={formData.name}
+                  onChange={(value) => updateFormData('name', value)}
+                  placeholder="Your Organization Name"
+                  required
+                  isEditMode={isEditMode}
+                />
 
-              <div className="mt-6">
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-                  Description
-                </label>
-                {isEditMode ? (
-                  <textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => updateFormData('description', e.target.value)}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
-                    placeholder="Brief description of your organization..."
-                  />
-                ) : (
-                  <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700">
-                    {formData.description || 'No description provided'}
+                <div className="mt-6">
+                  <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+                    Description
+                  </label>
+                  {isEditMode ? (
+                    <textarea
+                      id="description"
+                      value={formData.description}
+                      onChange={(e) => updateFormData('description', e.target.value)}
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
+                      placeholder="Brief description of your organization..."
+                    />
+                  ) : (
+                    <div className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700">
+                      {formData.description || 'No description provided'}
+                    </div>
+                  )}
+                </div>
+
+                {organization?.type === 'masjid' && (
+                  <div className="mt-6">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Amenities</label>
+                    <div className="grid grid-cols-2 gap-4">
+                      <label className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={formData.amenities.street_parking}
+                          onChange={(e) => updateAmenity('street_parking', e.target.checked)}
+                          disabled={!isEditMode}
+                          className="rounded"
+                        />
+                        <span className={`text-sm ${!isEditMode ? 'text-gray-500' : 'text-black'}`}>Street parking</span>
+                      </label>
+                      <label className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={formData.amenities.women_washroom}
+                          onChange={(e) => updateAmenity('women_washroom', e.target.checked)}
+                          disabled={!isEditMode}
+                          className="rounded"
+                        />
+                        <span className={`text-sm ${!isEditMode ? 'text-gray-500' : 'text-black'}`}>Women washroom</span>
+                      </label>
+                      <label className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={formData.amenities.on_site_parking}
+                          onChange={(e) => updateAmenity('on_site_parking', e.target.checked)}
+                          disabled={!isEditMode}
+                          className="rounded"
+                        />
+                        <span className={`text-sm ${!isEditMode ? 'text-gray-500' : 'text-black'}`}>On-site parking</span>
+                      </label>
+                      <label className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={formData.amenities.women_prayer_space}
+                          onChange={(e) => updateAmenity('women_prayer_space', e.target.checked)}
+                          disabled={!isEditMode}
+                          className="rounded"
+                        />
+                        <span className={`text-sm ${!isEditMode ? 'text-gray-500' : 'text-black'}`}>Women prayer space</span>
+                      </label>
+                      <label className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={formData.amenities.wheelchair_accessible}
+                          onChange={(e) => updateAmenity('wheelchair_accessible', e.target.checked)}
+                          disabled={!isEditMode}
+                          className="rounded"
+                        />
+                        <span className={`text-sm ${!isEditMode ? 'text-gray-500' : 'text-black'}`}>Wheelchair accessible</span>
+                      </label>
+                    </div>
                   </div>
                 )}
-              </div>
 
-              {organization?.type === 'masjid' && (
-                <div className="mt-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Amenities</label>
-                  <div className="grid grid-cols-2 gap-4">
-                    <label className="flex items-center space-x-2">
-                      <input 
-                        type="checkbox" 
-                        checked={formData.amenities.street_parking} 
-                        onChange={(e) => updateAmenity('street_parking', e.target.checked)}
-                        disabled={!isEditMode}
-                        className="rounded"
-                      />
-                      <span className={`text-sm ${!isEditMode ? 'text-gray-500' : 'text-black'}`}>Street parking</span>
-                    </label>
-                    <label className="flex items-center space-x-2">
-                      <input 
-                        type="checkbox" 
-                        checked={formData.amenities.women_washroom} 
-                        onChange={(e) => updateAmenity('women_washroom', e.target.checked)}
-                        disabled={!isEditMode}
-                        className="rounded"
-                      />
-                      <span className={`text-sm ${!isEditMode ? 'text-gray-500' : 'text-black'}`}>Women washroom</span>
-                    </label>
-                    <label className="flex items-center space-x-2">
-                      <input 
-                        type="checkbox" 
-                        checked={formData.amenities.on_site_parking} 
-                        onChange={(e) => updateAmenity('on_site_parking', e.target.checked)}
-                        disabled={!isEditMode}
-                        className="rounded"
-                      />
-                      <span className={`text-sm ${!isEditMode ? 'text-gray-500' : 'text-black'}`}>On-site parking</span>
-                    </label>
-                    <label className="flex items-center space-x-2">
-                      <input 
-                        type="checkbox" 
-                        checked={formData.amenities.women_prayer_space} 
-                        onChange={(e) => updateAmenity('women_prayer_space', e.target.checked)}
-                        disabled={!isEditMode}
-                        className="rounded"
-                      />
-                      <span className={`text-sm ${!isEditMode ? 'text-gray-500' : 'text-black'}`}>Women prayer space</span>
-                    </label>
-                    <label className="flex items-center space-x-2">
-                      <input 
-                        type="checkbox" 
-                        checked={formData.amenities.wheelchair_accessible} 
-                        onChange={(e) => updateAmenity('wheelchair_accessible', e.target.checked)}
-                        disabled={!isEditMode}
-                        className="rounded"
-                      />
-                      <span className={`text-sm ${!isEditMode ? 'text-gray-500' : 'text-black'}`}>Wheelchair accessible</span>
-                    </label>
-                  </div>
-                </div>
-              )}
-
-              <EditableTextInput
-                id="address"
-                label="Street Address"
-                value={formData.address}
-                onChange={(value) => updateFormData('address', value)}
-                placeholder="123 Main Street"
-                isEditMode={isEditMode}
-              />
-
-              <div className="grid md:grid-cols-2 gap-6">
                 <EditableTextInput
-                  id="city"
-                  label="City"
-                  value={formData.city}
-                  onChange={(value) => updateFormData('city', value)}
-                  placeholder="Toronto"
+                  id="address"
+                  label="Street Address"
+                  value={formData.address}
+                  onChange={(value) => updateFormData('address', value)}
+                  placeholder="123 Main Street"
                   isEditMode={isEditMode}
                 />
-                <EditableTextInput
-                  id="province_state"
-                  label="Province/State"
-                  value={formData.province_state}
-                  onChange={(value) => updateFormData('province_state', value)}
-                  placeholder="Ontario"
-                  isEditMode={isEditMode}
-                />
-              </div>
 
-              <div className="grid md:grid-cols-2 gap-6">
-                <EditableTextInput
-                  id="country"
-                  label="Country"
-                  value={formData.country}
-                  onChange={(value) => updateFormData('country', value)}
-                  placeholder="Canada"
-                  isEditMode={isEditMode}
-                />
-                <EditableTextInput
-                  id="postal_code"
-                  label="Postal/ZIP Code"
-                  value={formData.postal_code}
-                  onChange={(value) => updateFormData('postal_code', value)}
-                  placeholder="L1T 1X5"
-                  isEditMode={isEditMode}
-                />
-              </div>
-
-              <div className="border-t pt-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Contact Information</h3>
-                
                 <div className="grid md:grid-cols-2 gap-6">
                   <EditableTextInput
-                    id="contact_name"
-                    label="Contact Person"
-                    value={formData.contact_name}
-                    onChange={(value) => updateFormData('contact_name', value)}
-                    placeholder="John Smith"
+                    id="city"
+                    label="City"
+                    value={formData.city}
+                    onChange={(value) => updateFormData('city', value)}
+                    placeholder="Toronto"
                     isEditMode={isEditMode}
                   />
                   <EditableTextInput
-                    id="contact_phone"
-                    label="Phone Number"
-                    type="tel"
-                    value={formData.contact_phone}
-                    onChange={(value) => updateFormData('contact_phone', value)}
-                    placeholder="+1 (555) 123-4567"
+                    id="province_state"
+                    label="Province/State"
+                    value={formData.province_state}
+                    onChange={(value) => updateFormData('province_state', value)}
+                    placeholder="Ontario"
                     isEditMode={isEditMode}
                   />
                 </div>
 
-                <EditableTextInput
-                  id="contact_email"
-                  label="Contact Email"
-                  type="email"
-                  value={formData.contact_email}
-                  onChange={(value) => updateFormData('contact_email', value)}
-                  placeholder="contact@yourorganization.com"
-                  isEditMode={isEditMode}
-                  className="mt-6"
-                />
-              </div>
-
-              <div className="border-t pt-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Online Presence</h3>
-                
-                <EditableTextInput
-                  id="website"
-                  label="Website"
-                  type="url"
-                  value={formData.website}
-                  onChange={(value) => updateFormData('website', value)}
-                  placeholder="https://yourorganization.com"
-                  isEditMode={isEditMode}
-                />
-
-                <EditableTextInput
-                  id="donate_link"
-                  label="Donation Link"
-                  type="url"
-                  value={formData.donate_link}
-                  onChange={(value) => updateFormData('donate_link', value)}
-                  placeholder="https://donate.yourorganization.com"
-                  isEditMode={isEditMode}
-                  className="mt-6"
-                />
-
-                <ReadOnlyLink
-                  id="prayer_times_url"
-                  label="Prayer Times Schedule"
-                  url={organization?.prayer_times_url}
-                  linkText="View Prayer Times"
-                  placeholder="No prayer times schedule uploaded"
-                  className="mt-6"
-                />
-
-                <div className="grid md:grid-cols-3 gap-6 mt-6">
+                <div className="grid md:grid-cols-2 gap-6">
                   <EditableTextInput
-                    id="facebook"
-                    label="Facebook"
-                    type="url"
-                    value={formData.facebook}
-                    onChange={(value) => updateFormData('facebook', value)}
-                    placeholder="https://facebook.com/yourpage"
+                    id="country"
+                    label="Country"
+                    value={formData.country}
+                    onChange={(value) => updateFormData('country', value)}
+                    placeholder="Canada"
                     isEditMode={isEditMode}
                   />
                   <EditableTextInput
-                    id="instagram"
-                    label="Instagram"
-                    type="url"
-                    value={formData.instagram}
-                    onChange={(value) => updateFormData('instagram', value)}
-                    placeholder="https://instagram.com/yourprofile"
-                    isEditMode={isEditMode}
-                  />
-                  <EditableTextInput
-                    id="twitter"
-                    label="Twitter"
-                    type="url"
-                    value={formData.twitter}
-                    onChange={(value) => updateFormData('twitter', value)}
-                    placeholder="https://twitter.com/yourprofile"
+                    id="postal_code"
+                    label="Postal/ZIP Code"
+                    value={formData.postal_code}
+                    onChange={(value) => updateFormData('postal_code', value)}
+                    placeholder="L1T 1X5"
                     isEditMode={isEditMode}
                   />
                 </div>
-              </div>
+
+                <div className="border-t pt-6">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Contact Information</h3>
+
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <EditableTextInput
+                      id="contact_name"
+                      label="Contact Person"
+                      value={formData.contact_name}
+                      onChange={(value) => updateFormData('contact_name', value)}
+                      placeholder="John Smith"
+                      isEditMode={isEditMode}
+                    />
+                    <EditableTextInput
+                      id="contact_phone"
+                      label="Phone Number"
+                      type="tel"
+                      value={formData.contact_phone}
+                      onChange={(value) => updateFormData('contact_phone', value)}
+                      placeholder="+1 (555) 123-4567"
+                      isEditMode={isEditMode}
+                    />
+                  </div>
+
+                  <EditableTextInput
+                    id="contact_email"
+                    label="Contact Email"
+                    type="email"
+                    value={formData.contact_email}
+                    onChange={(value) => updateFormData('contact_email', value)}
+                    placeholder="contact@yourorganization.com"
+                    isEditMode={isEditMode}
+                    className="mt-6"
+                  />
+                </div>
+
+                <div className="border-t pt-6">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Online Presence</h3>
+
+                  <EditableTextInput
+                    id="website"
+                    label="Website"
+                    type="url"
+                    value={formData.website}
+                    onChange={(value) => updateFormData('website', value)}
+                    placeholder="https://yourorganization.com"
+                    isEditMode={isEditMode}
+                  />
+
+                  <EditableTextInput
+                    id="donate_link"
+                    label="Donation Link"
+                    type="url"
+                    value={formData.donate_link}
+                    onChange={(value) => updateFormData('donate_link', value)}
+                    placeholder="https://donate.yourorganization.com"
+                    isEditMode={isEditMode}
+                    className="mt-6"
+                  />
+
+                  <ReadOnlyLink
+                    id="prayer_times_url"
+                    label="Prayer Times Schedule"
+                    url={organization?.prayer_times_url}
+                    linkText="View Prayer Times"
+                    placeholder="No prayer times schedule uploaded"
+                    className="mt-6"
+                  />
+
+                  <div className="grid md:grid-cols-3 gap-6 mt-6">
+                    <EditableTextInput
+                      id="facebook"
+                      label="Facebook"
+                      type="url"
+                      value={formData.facebook}
+                      onChange={(value) => updateFormData('facebook', value)}
+                      placeholder="https://facebook.com/yourpage"
+                      isEditMode={isEditMode}
+                    />
+                    <EditableTextInput
+                      id="instagram"
+                      label="Instagram"
+                      type="url"
+                      value={formData.instagram}
+                      onChange={(value) => updateFormData('instagram', value)}
+                      placeholder="https://instagram.com/yourprofile"
+                      isEditMode={isEditMode}
+                    />
+                    <EditableTextInput
+                      id="twitter"
+                      label="Twitter"
+                      type="url"
+                      value={formData.twitter}
+                      onChange={(value) => updateFormData('twitter', value)}
+                      placeholder="https://twitter.com/yourprofile"
+                      isEditMode={isEditMode}
+                    />
+                    <EditableTextInput
+                      id="whatsapp"
+                      label="WhatsApp"
+                      type="url"
+                      value={formData.whatsapp}
+                      onChange={(value) => updateFormData('whatsapp', value)}
+                      placeholder="https://wa.me/1234567890"
+                      isEditMode={isEditMode}
+                    />
+                    <EditableTextInput
+                      id="youtube"
+                      label="YouTube"
+                      type="url"
+                      value={formData.youtube}
+                      onChange={(value) => updateFormData('youtube', value)}
+                      placeholder="https://youtube.com/@yourchannel"
+                      isEditMode={isEditMode}
+                    />
+                  </div>
+                </div>
               </div>
             </Suspense>
           </div>

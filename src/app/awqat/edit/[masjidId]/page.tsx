@@ -29,6 +29,8 @@ interface Masjid {
   facebook?: string
   instagram?: string
   twitter?: string
+  whatsapp?: string
+  youtube?: string
   prayer_times_url?: string
   donate_link?: string
 }
@@ -74,8 +76,9 @@ export default function AwqatEditMasjidPage() {
     facebook: '',
     instagram: '',
     twitter: '',
-    prayer_times_url: ''
-    ,
+    whatsapp: '',
+    youtube: '',
+    prayer_times_url: '',
     donate_link: ''
   })
 
@@ -127,6 +130,8 @@ export default function AwqatEditMasjidPage() {
           facebook: data.facebook || '',
           instagram: data.instagram || '',
           twitter: data.twitter || '',
+          whatsapp: data.whatsapp || '',
+          youtube: data.youtube || '',
           prayer_times_url: data.prayer_times_url || '',
           donate_link: data.donate_link || ''
         })
@@ -636,6 +641,34 @@ export default function AwqatEditMasjidPage() {
                   id="twitter"
                   name="twitter"
                   value={formData.twitter}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="whatsapp" className="block text-sm font-medium text-black mb-1">
+                  WhatsApp
+                </label>
+                <input
+                  type="url"
+                  id="whatsapp"
+                  name="whatsapp"
+                  value={formData.whatsapp}
+                  onChange={handleInputChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="youtube" className="block text-sm font-medium text-black mb-1">
+                  YouTube
+                </label>
+                <input
+                  type="url"
+                  id="youtube"
+                  name="youtube"
+                  value={formData.youtube}
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
                 />

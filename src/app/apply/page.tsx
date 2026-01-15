@@ -38,6 +38,8 @@ export default function ApplyPage() {
     facebook: '',
     instagram: '',
     twitter: '',
+    whatsapp: '',
+    youtube: '',
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
@@ -179,6 +181,8 @@ export default function ApplyPage() {
           facebook: formData.facebook || null,
           instagram: formData.instagram || null,
           twitter: formData.twitter || null,
+          whatsapp: formData.whatsapp || null,
+          youtube: formData.youtube || null,
           prayer_times_url: null,
           application_status: 'submitted',
           created_at: new Date().toISOString(),
@@ -479,6 +483,24 @@ export default function ApplyPage() {
                   value={formData.twitter}
                   onChange={(value) => updateFormData('twitter', value)}
                   placeholder="https://twitter.com/yourprofile"
+                />
+
+                <TextInput
+                  id="whatsapp"
+                  label="WhatsApp"
+                  type="url"
+                  value={formData.whatsapp}
+                  onChange={(value) => updateFormData('whatsapp', value)}
+                  placeholder="https://wa.me/1234567890"
+                />
+
+                <TextInput
+                  id="youtube"
+                  label="YouTube"
+                  type="url"
+                  value={formData.youtube}
+                  onChange={(value) => updateFormData('youtube', value)}
+                  placeholder="https://youtube.com/@yourchannel"
                 />
               </div>
 

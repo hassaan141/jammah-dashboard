@@ -110,6 +110,8 @@ export async function POST(request: NextRequest) {
               facebook: application.facebook,
               instagram: application.instagram,
               twitter: application.twitter,
+              whatsapp: application.whatsapp,
+              youtube: application.youtube,
               is_active: true,
               approved_at: new Date().toISOString(),
               prayer_times_url: application.prayer_times_url,

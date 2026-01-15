@@ -29,6 +29,8 @@ export const organizationSchema = z.object({
     facebook: z.string().url().max(500).trim().optional().or(z.literal('')).nullable(),
     instagram: z.string().url().max(500).trim().optional().or(z.literal('')).nullable(),
     twitter: z.string().url().max(500).trim().optional().or(z.literal('')).nullable(),
+    whatsapp: z.string().url().max(500).trim().optional().or(z.literal('')).nullable(),
+    youtube: z.string().url().max(500).trim().optional().or(z.literal('')).nullable(),
     donate_link: z.string().url().max(500).trim().optional().or(z.literal('')).nullable(),
 })
 
@@ -68,6 +70,8 @@ const organizationCreationDataSchema = z.object({
     facebook: z.string().url().max(500).trim().optional().or(z.literal('')).nullable(),
     instagram: z.string().url().max(500).trim().optional().or(z.literal('')).nullable(),
     twitter: z.string().url().max(500).trim().optional().or(z.literal('')).nullable(),
+    whatsapp: z.string().url().max(500).trim().optional().or(z.literal('')).nullable(),
+    youtube: z.string().url().max(500).trim().optional().or(z.literal('')).nullable(),
     prayer_times_url: z.string().url().max(500).trim().optional().or(z.literal('')).nullable(),
 })
 

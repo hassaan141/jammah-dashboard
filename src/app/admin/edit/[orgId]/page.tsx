@@ -37,6 +37,8 @@ interface Organization {
   facebook?: string
   instagram?: string
   twitter?: string
+  whatsapp?: string
+  youtube?: string
   donate_link?: string
   prayer_times_url?: string
   is_active?: boolean
@@ -46,14 +48,14 @@ export default function AdminEditOrganizationPage() {
   const params = useParams()
   const router = useRouter()
   const orgId = params.orgId as string
-  
+
   const [organization, setOrganization] = useState<Organization | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [isEditMode, setIsEditMode] = useState(false)
-  
+
   // Ingestion key UI state
   const [creatingKey, setCreatingKey] = useState(false)
   const [oneTimeSecret, setOneTimeSecret] = useState<string | null>(null)
@@ -84,6 +86,8 @@ export default function AdminEditOrganizationPage() {
     facebook: '',
     instagram: '',
     twitter: '',
+    whatsapp: '',
+    youtube: '',
     donate_link: '',
     prayer_times_url: '',
     is_active: true
@@ -92,7 +96,7 @@ export default function AdminEditOrganizationPage() {
   useEffect(() => {
     async function loadOrganization() {
       const supabase = createClient()
-      
+
       // Try organizations table first
       const { data, error } = await supabase
         .from('organizations')
@@ -102,7 +106,7 @@ export default function AdminEditOrganizationPage() {
 
       if (error) {
         console.log('Error loading from organizations, trying applications:', error)
-        
+
         // Fall back to applications table
         const { data: appData, error: appError } = await supabase
           .from('applications')
@@ -133,11 +137,13 @@ export default function AdminEditOrganizationPage() {
             facebook: (appData as any).facebook || '',
             instagram: (appData as any).instagram || '',
             twitter: (appData as any).twitter || '',
+            whatsapp: (appData as any).whatsapp || '',
+            youtube: (appData as any).youtube || '',
             donate_link: (appData as any).donate_link || '',
             is_active: (appData as any).is_active ?? true,
             prayer_times_url: (appData as any).prayer_times_url || ''
           }
-          
+
           setOrganization(mappedData)
           setFormData({
             name: mappedData.name || '',
@@ -156,6 +162,8 @@ export default function AdminEditOrganizationPage() {
             facebook: mappedData.facebook || '',
             instagram: mappedData.instagram || '',
             twitter: mappedData.twitter || '',
+            whatsapp: mappedData.whatsapp || '',
+            youtube: mappedData.youtube || '',
             donate_link: mappedData.donate_link || '',
             prayer_times_url: mappedData.prayer_times_url || '',
             is_active: mappedData.is_active ?? true
@@ -180,6 +188,8 @@ export default function AdminEditOrganizationPage() {
           facebook: data.facebook || '',
           instagram: data.instagram || '',
           twitter: data.twitter || '',
+          whatsapp: data.whatsapp || '',
+          youtube: data.youtube || '',
           donate_link: data.donate_link || '',
           prayer_times_url: data.prayer_times_url || '',
           is_active: data.is_active ?? true
@@ -244,6 +254,8 @@ export default function AdminEditOrganizationPage() {
       facebook: org.facebook || '',
       instagram: org.instagram || '',
       twitter: org.twitter || '',
+      whatsapp: org.whatsapp || '',
+      youtube: org.youtube || '',
       donate_link: org.donate_link || '',
       prayer_times_url: org.prayer_times_url || '',
       is_active: org.is_active ?? true
@@ -276,11 +288,11 @@ export default function AdminEditOrganizationPage() {
         },
         body: JSON.stringify({ address })
       })
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
-      
+
       const data = await response.json()
       return { lat: data.lat, lng: data.lng }
     } catch (error) {
@@ -301,12 +313,12 @@ export default function AdminEditOrganizationPage() {
 
     try {
       console.log('Admin saving organization:', orgId, formData)
-      
+
       // Geocode the full address if it exists
       const fullAddress = [formData.address, formData.city, formData.province_state, formData.country]
         .filter(Boolean)
         .join(', ')
-      
+
       const { lat, lng } = await geocodeAddress(fullAddress)
 
       const updateData = {
@@ -318,7 +330,7 @@ export default function AdminEditOrganizationPage() {
       }
 
       const supabase = createClient()
-      
+
       // Try to update organizations table first
       const { error } = await supabase
         .from('organizations')
@@ -327,7 +339,7 @@ export default function AdminEditOrganizationPage() {
 
       if (error) {
         console.log('Error updating organizations, trying applications:', error)
-        
+
         // Fall back to updating applications table
         const appUpdateData = {
           organization_name: updateData.name,
@@ -345,7 +357,7 @@ export default function AdminEditOrganizationPage() {
           website: updateData.website,
           updated_at: updateData.updated_at
         }
-        
+
         const { error: appError } = await supabase
           .from('applications')
           .update(appUpdateData)
@@ -358,14 +370,14 @@ export default function AdminEditOrganizationPage() {
           console.log('Application updated successfully')
           setSuccess('Organization updated successfully!')
           setIsEditMode(false)
-          
+
           // Refresh the organization data from applications
           const { data: appData } = await supabase
             .from('applications')
             .select('*')
             .eq('id', orgId)
             .single()
-          
+
           if (appData) {
             const mappedData = {
               id: appData.id,
@@ -390,14 +402,14 @@ export default function AdminEditOrganizationPage() {
         console.log('Organization updated successfully')
         setSuccess('Organization updated successfully!')
         setIsEditMode(false)
-        
+
         // Refresh the organization data
         const { data } = await supabase
           .from('organizations')
           .select('*')
           .eq('id', orgId)
           .single()
-        
+
         if (data) {
           setOrganization(data)
         }
@@ -535,9 +547,9 @@ export default function AdminEditOrganizationPage() {
                   <h3 className="text-lg font-medium text-black mb-4">Amenities</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <label className="flex items-center space-x-2">
-                      <input 
-                        type="checkbox" 
-                        checked={formData.amenities.street_parking} 
+                      <input
+                        type="checkbox"
+                        checked={formData.amenities.street_parking}
                         onChange={(e) => updateAmenity('street_parking', e.target.checked)}
                         disabled={!isEditMode}
                         className="rounded"
@@ -545,9 +557,9 @@ export default function AdminEditOrganizationPage() {
                       <span className={`text-sm ${!isEditMode ? 'text-gray-500' : 'text-black'}`}>Street parking</span>
                     </label>
                     <label className="flex items-center space-x-2">
-                      <input 
-                        type="checkbox" 
-                        checked={formData.amenities.women_washroom} 
+                      <input
+                        type="checkbox"
+                        checked={formData.amenities.women_washroom}
                         onChange={(e) => updateAmenity('women_washroom', e.target.checked)}
                         disabled={!isEditMode}
                         className="rounded"
@@ -555,9 +567,9 @@ export default function AdminEditOrganizationPage() {
                       <span className={`text-sm ${!isEditMode ? 'text-gray-500' : 'text-black'}`}>Women washroom</span>
                     </label>
                     <label className="flex items-center space-x-2">
-                      <input 
-                        type="checkbox" 
-                        checked={formData.amenities.on_site_parking} 
+                      <input
+                        type="checkbox"
+                        checked={formData.amenities.on_site_parking}
                         onChange={(e) => updateAmenity('on_site_parking', e.target.checked)}
                         disabled={!isEditMode}
                         className="rounded"
@@ -565,9 +577,9 @@ export default function AdminEditOrganizationPage() {
                       <span className={`text-sm ${!isEditMode ? 'text-gray-500' : 'text-black'}`}>On-site parking</span>
                     </label>
                     <label className="flex items-center space-x-2">
-                      <input 
-                        type="checkbox" 
-                        checked={formData.amenities.women_prayer_space} 
+                      <input
+                        type="checkbox"
+                        checked={formData.amenities.women_prayer_space}
                         onChange={(e) => updateAmenity('women_prayer_space', e.target.checked)}
                         disabled={!isEditMode}
                         className="rounded"
@@ -575,9 +587,9 @@ export default function AdminEditOrganizationPage() {
                       <span className={`text-sm ${!isEditMode ? 'text-gray-500' : 'text-black'}`}>Women prayer space</span>
                     </label>
                     <label className="flex items-center space-x-2">
-                      <input 
-                        type="checkbox" 
-                        checked={formData.amenities.wheelchair_accessible} 
+                      <input
+                        type="checkbox"
+                        checked={formData.amenities.wheelchair_accessible}
                         onChange={(e) => updateAmenity('wheelchair_accessible', e.target.checked)}
                         disabled={!isEditMode}
                         className="rounded"
@@ -617,7 +629,9 @@ export default function AdminEditOrganizationPage() {
                   prayer_times_url: formData.prayer_times_url,
                   facebook: formData.facebook,
                   instagram: formData.instagram,
-                  twitter: formData.twitter
+                  twitter: formData.twitter,
+                  whatsapp: formData.whatsapp,
+                  youtube: formData.youtube
                 }}
                 updateFormData={updateFormData}
                 isEditMode={isEditMode}
@@ -631,7 +645,7 @@ export default function AdminEditOrganizationPage() {
                     Generate a secure key for Google Sheets integration. This can only be done once per organization.
                   </p>
                 </div>
-                
+
                 <button
                   type="button"
                   onClick={handleCreateIngestionKey}

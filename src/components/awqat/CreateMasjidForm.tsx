@@ -33,6 +33,8 @@ export default function CreateMasjidForm({ onSuccess }: CreateMasjidFormProps) {
     facebook: '',
     instagram: '',
     twitter: '',
+    whatsapp: '',
+    youtube: '',
   })
 
   const supabase = createClient()
@@ -72,6 +74,8 @@ export default function CreateMasjidForm({ onSuccess }: CreateMasjidFormProps) {
           facebook: formData.facebook || null,
           instagram: formData.instagram || null,
           twitter: formData.twitter || null,
+          whatsapp: formData.whatsapp || null,
+          youtube: formData.youtube || null,
           prayer_times_url: null,
           application_status: 'submitted',
           created_at: new Date().toISOString(),
@@ -106,6 +110,8 @@ export default function CreateMasjidForm({ onSuccess }: CreateMasjidFormProps) {
         facebook: '',
         instagram: '',
         twitter: '',
+        whatsapp: '',
+        youtube: '',
       })
 
       alert('Masjid application submitted successfully! It will appear in the Awqat applications list for approval.')
@@ -364,6 +370,34 @@ export default function CreateMasjidForm({ onSuccess }: CreateMasjidFormProps) {
               onChange={handleInputChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
               placeholder="https://twitter.com/yourprofile"
+            />
+          </div>
+          <div>
+            <label htmlFor="whatsapp" className="block text-sm font-medium text-black mb-1">
+              WhatsApp
+            </label>
+            <input
+              type="url"
+              id="whatsapp"
+              name="whatsapp"
+              value={formData.whatsapp}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+              placeholder="https://wa.me/1234567890"
+            />
+          </div>
+          <div>
+            <label htmlFor="youtube" className="block text-sm font-medium text-black mb-1">
+              YouTube
+            </label>
+            <input
+              type="url"
+              id="youtube"
+              name="youtube"
+              value={formData.youtube}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+              placeholder="https://youtube.com/@yourchannel"
             />
           </div>
         </div>
