@@ -39,7 +39,7 @@ export default function AwqatEditMasjidPage() {
   const params = useParams()
   const router = useRouter()
   const masjidId = params.masjidId as string
-  
+
   const [masjid, setMasjid] = useState<Masjid | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -101,7 +101,7 @@ export default function AwqatEditMasjidPage() {
           .select('*')
           .eq('id', masjidId)
           .eq('type', 'masjid')
-          .or('province_state.ilike.%British Columbia%,province_state.ilike.%BC%')  
+          .or('province_state.ilike.%British Columbia%,province_state.ilike.%BC%')
           .single()
 
         if (error) throw error
@@ -208,6 +208,8 @@ export default function AwqatEditMasjidPage() {
           facebook: formData.facebook || null,
           instagram: formData.instagram || null,
           twitter: formData.twitter || null,
+          whatsapp: formData.whatsapp || null,
+          youtube: formData.youtube || null,
           prayer_times_url: formData.prayer_times_url || null,
           donate_link: formData.donate_link || null,
           updated_at: new Date().toISOString()
@@ -219,14 +221,14 @@ export default function AwqatEditMasjidPage() {
       if (error) throw error
 
       setSuccess('Masjid updated successfully!')
-      
+
       // Refresh the masjid data
       const { data } = await supabase
         .from('organizations')
         .select('*')
         .eq('id', masjidId)
         .single()
-      
+
       if (data) {
         setMasjid(data)
       }
@@ -354,7 +356,7 @@ export default function AwqatEditMasjidPage() {
           </div>
         )}
 
-      <div>
+        <div>
           <label htmlFor="id" className="block text-sm font-medium text-black mb-1">Masjid ID</label>
           <input
             type="text"
@@ -404,45 +406,45 @@ export default function AwqatEditMasjidPage() {
               <label className="block text-sm font-medium text-black mb-2">Amenities</label>
               <div className="grid grid-cols-2 gap-4">
                 <label className="flex items-center space-x-2">
-                  <input 
-                    type="checkbox" 
-                    checked={formData.amenities.street_parking} 
+                  <input
+                    type="checkbox"
+                    checked={formData.amenities.street_parking}
                     onChange={(e) => updateAmenity('street_parking', e.target.checked)}
                     className="rounded"
                   />
                   <span className="text-sm text-black">Street parking</span>
                 </label>
                 <label className="flex items-center space-x-2">
-                  <input 
-                    type="checkbox" 
-                    checked={formData.amenities.women_washroom} 
+                  <input
+                    type="checkbox"
+                    checked={formData.amenities.women_washroom}
                     onChange={(e) => updateAmenity('women_washroom', e.target.checked)}
                     className="rounded"
                   />
                   <span className="text-sm text-black">Women washroom</span>
                 </label>
                 <label className="flex items-center space-x-2">
-                  <input 
-                    type="checkbox" 
-                    checked={formData.amenities.on_site_parking} 
+                  <input
+                    type="checkbox"
+                    checked={formData.amenities.on_site_parking}
                     onChange={(e) => updateAmenity('on_site_parking', e.target.checked)}
                     className="rounded"
                   />
                   <span className="text-sm text-black">On-site parking</span>
                 </label>
                 <label className="flex items-center space-x-2">
-                  <input 
-                    type="checkbox" 
-                    checked={formData.amenities.women_prayer_space} 
+                  <input
+                    type="checkbox"
+                    checked={formData.amenities.women_prayer_space}
                     onChange={(e) => updateAmenity('women_prayer_space', e.target.checked)}
                     className="rounded"
                   />
                   <span className="text-sm text-black">Women prayer space</span>
                 </label>
                 <label className="flex items-center space-x-2">
-                  <input 
-                    type="checkbox" 
-                    checked={formData.amenities.wheelchair_accessible} 
+                  <input
+                    type="checkbox"
+                    checked={formData.amenities.wheelchair_accessible}
                     onChange={(e) => updateAmenity('wheelchair_accessible', e.target.checked)}
                     className="rounded"
                   />
@@ -588,20 +590,20 @@ export default function AwqatEditMasjidPage() {
               />
             </div>
 
-              <div>
-                <label htmlFor="donate_link" className="block text-sm font-medium text-black mb-1">
-                  Donate Link
-                </label>
-                <input
-                  type="url"
-                  id="donate_link"
-                  name="donate_link"
-                  value={formData.donate_link}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
-                  placeholder="https://"
-                />
-              </div>
+            <div>
+              <label htmlFor="donate_link" className="block text-sm font-medium text-black mb-1">
+                Donate Link
+              </label>
+              <input
+                type="url"
+                id="donate_link"
+                name="donate_link"
+                value={formData.donate_link}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+                placeholder="https://"
+              />
+            </div>
 
             <div className="grid md:grid-cols-3 gap-6">
               <div>
@@ -694,7 +696,7 @@ export default function AwqatEditMasjidPage() {
                 Generate a secure key for Google Sheets integration. This can only be done once per organization.
               </p>
             </div>
-            
+
             <button
               type="button"
               onClick={handleCreateIngestionKey}
