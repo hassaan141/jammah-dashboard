@@ -86,6 +86,8 @@ export default function StatusDropdown({ applicationId, currentStatus, organizat
             facebook: organizationData.facebook,
             instagram: organizationData.instagram,
             twitter: organizationData.twitter,
+            youtube: organizationData.youtube,
+            whatsapp: organizationData.whatsapp,
             prayer_times_url: organizationData.prayer_times_url,
             donate_link: organizationData.donate_link,
             description: organizationData.description,

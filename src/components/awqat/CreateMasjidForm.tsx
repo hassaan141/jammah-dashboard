@@ -84,7 +84,10 @@ export default function CreateMasjidForm({ onSuccess }: CreateMasjidFormProps) {
         .select()
         .single()
 
-      if (error) throw error
+      if (error) {
+        console.error('Database error details:', error)
+        throw new Error(`Database error: ${error.message} (Code: ${error.code})`)
+      }
 
       // Reset form
       setFormData({
@@ -116,9 +119,10 @@ export default function CreateMasjidForm({ onSuccess }: CreateMasjidFormProps) {
 
       alert('Masjid application submitted successfully! It will appear in the Awqat applications list for approval.')
       onSuccess?.()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error submitting masjid application:', error)
-      alert('Error submitting masjid application. Please try again.')
+      const errorMessage = error?.message || 'Unknown error occurred'
+      alert(`Error submitting masjid application: ${errorMessage}\n\nPlease check the console for details or contact support.`)
     } finally {
       setIsLoading(false)
     }

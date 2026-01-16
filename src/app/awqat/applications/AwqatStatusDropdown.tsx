@@ -16,12 +16,12 @@ export default function AwqatStatusDropdown({ applicationId, currentStatus, orga
 
   const handleStatusChange = async (newStatus: string) => {
     console.log('Awqat status change:', currentStatus, '->', newStatus)
-    
+
     setIsLoading(true)
-    
+
     try {
       const supabase = createClient()
-      
+
       // For approval, create organization record and update application status
       if (newStatus === 'approved') {
         try {
@@ -29,23 +29,23 @@ export default function AwqatStatusDropdown({ applicationId, currentStatus, orga
           let latitude = null
           let longitude = null
           let timezone = null
-          
+
           if (organizationData.address && organizationData.city && organizationData.province_state) {
             const fullAddress = `${organizationData.address}, ${organizationData.city}, ${organizationData.province_state}, ${organizationData.country || 'Canada'}`
-            
+
             try {
               const geocodeResponse = await fetch('/api/geocode', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ address: fullAddress })
               })
-              
+
               if (geocodeResponse.ok) {
                 const geocodeData = await geocodeResponse.json()
                 if (geocodeData.lat && geocodeData.lng) {
                   latitude = geocodeData.lat
                   longitude = geocodeData.lng
-                  
+
                   // Get timezone from lat/long via API
                   try {
                     const timezoneResponse = await fetch('/api/timezone', {
@@ -53,7 +53,7 @@ export default function AwqatStatusDropdown({ applicationId, currentStatus, orga
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ lat: latitude, lng: longitude })
                     })
-                    
+
                     if (timezoneResponse.ok) {
                       const timezoneData = await timezoneResponse.json()
                       if (timezoneData.timezone) {
@@ -91,6 +91,8 @@ export default function AwqatStatusDropdown({ applicationId, currentStatus, orga
               facebook: organizationData.facebook || null,
               instagram: organizationData.instagram || null,
               twitter: organizationData.twitter || null,
+              whatsapp: organizationData.whatsapp || null,
+              youtube: organizationData.youtube || null,
               prayer_times_url: organizationData.prayer_times_url || null,
               latitude: latitude,
               longitude: longitude,
@@ -106,7 +108,7 @@ export default function AwqatStatusDropdown({ applicationId, currentStatus, orga
           // Then update the application status
           const { error: appError } = await supabase
             .from('organization_applications')
-            .update({ 
+            .update({
               application_status: 'approved',
               updated_at: new Date().toISOString()
             })
@@ -117,7 +119,7 @@ export default function AwqatStatusDropdown({ applicationId, currentStatus, orga
             alert('Organization created but failed to update application status')
             return
           }
-          
+
           alert('Application approved successfully! Organization has been created.')
         } catch (err) {
           console.error('Error in approval process:', err)
@@ -128,7 +130,7 @@ export default function AwqatStatusDropdown({ applicationId, currentStatus, orga
         // For other status changes, just update the application status
         const { error } = await supabase
           .from('organization_applications')
-          .update({ 
+          .update({
             application_status: newStatus,
             updated_at: new Date().toISOString()
           })
@@ -143,7 +145,7 @@ export default function AwqatStatusDropdown({ applicationId, currentStatus, orga
 
       // Refresh the parent component to show updated data
       window.location.reload()
-      
+
     } catch (error) {
       console.error('Unexpected error:', error)
       alert('An unexpected error occurred')
@@ -172,9 +174,8 @@ export default function AwqatStatusDropdown({ applicationId, currentStatus, orga
       value={currentStatus}
       onChange={(e) => handleStatusChange(e.target.value)}
       disabled={isLoading}
-      className={`text-sm rounded border px-2 py-1 ${getStatusColor(currentStatus)} ${
-        isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-gray-50'
-      }`}
+      className={`text-sm rounded border px-2 py-1 ${getStatusColor(currentStatus)} ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-gray-50'
+        }`}
     >
       <option value="submitted">Submitted</option>
       <option value="in_review">In Review</option>
