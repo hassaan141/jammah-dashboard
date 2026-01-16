@@ -13,13 +13,23 @@ export async function withAuth(
             return NextResponse.json({ error: 'No authorization header' }, { status: 401 })
         }
 
+        const token = authorization.replace('Bearer ', '')
+
+        // Create a Supabase client with the user's access token
+        // This ensures RLS policies work correctly with the authenticated user
         const supabase = createClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            {
+                global: {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            }
         )
 
-        const token = authorization.replace('Bearer ', '')
-        const { data: { user }, error } = await supabase.auth.getUser(token)
+        const { data: { user }, error } = await supabase.auth.getUser()
 
         if (error || !user) {
             return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 })
