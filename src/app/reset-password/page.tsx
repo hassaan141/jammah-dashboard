@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import type { Session } from '@supabase/supabase-js'
 
 export default function ResetPasswordPage() {
   const [newPassword, setNewPassword] = useState('')
@@ -17,20 +18,78 @@ export default function ResetPasswordPage() {
 
   useEffect(() => {
     const verifyUser = async () => {
-      // Check if this is a password recovery session
-      const { data: { session } } = await supabase.auth.getSession()
-      
-      if (session) {
-        // Valid recovery token - user is authenticated
+      const applyRecoverySession = (session: Session | null) => {
+        if (!session?.user) {
+          return false
+        }
+
         setUser(session.user)
         setIsValidToken(true)
-        setIsVerifying(false)
-        return
+        return true
       }
 
-      // No valid session - invalid or expired token
-      setIsVerifying(false)
-      setError('Invalid or expired reset link. Please request a new password reset.')
+      try {
+        const currentUrl = new URL(window.location.href)
+        const recoveryMode = currentUrl.searchParams.get('mode')
+        const authCode = currentUrl.searchParams.get('code')
+        const hashParams = new URLSearchParams(window.location.hash.substring(1))
+        const accessToken = hashParams.get('access_token')
+        const refreshToken = hashParams.get('refresh_token')
+        const type = hashParams.get('type')
+        const hasRecoveryIntent =
+          recoveryMode === 'recovery' ||
+          Boolean(authCode) ||
+          (Boolean(accessToken) && Boolean(refreshToken) && type === 'recovery')
+
+        if (!hasRecoveryIntent) {
+          setError('Invalid or expired reset link. Please request a new password reset.')
+          return
+        }
+
+        const { data: { session } } = await supabase.auth.getSession()
+
+        if (!authCode && !accessToken && applyRecoverySession(session)) {
+          return
+        }
+
+        if (authCode) {
+          const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(authCode)
+
+          if (exchangeError) {
+            setError('Invalid or expired reset link. Please request a new password reset.')
+            return
+          }
+
+          if (applyRecoverySession(data.session)) {
+            window.history.replaceState({}, document.title, currentUrl.pathname)
+            return
+          }
+        }
+
+        if (accessToken && refreshToken && type === 'recovery') {
+          const { data, error: sessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          })
+
+          if (sessionError) {
+            setError('Invalid or expired reset link. Please request a new password reset.')
+            return
+          }
+
+          if (applyRecoverySession(data.session)) {
+            window.history.replaceState({}, document.title, currentUrl.pathname)
+            return
+          }
+        }
+
+        setError('Invalid or expired reset link. Please request a new password reset.')
+      } catch (err) {
+        console.error('Reset link verification failed:', err)
+        setError('Invalid or expired reset link. Please request a new password reset.')
+      } finally {
+        setIsVerifying(false)
+      }
     }
 
     verifyUser()
