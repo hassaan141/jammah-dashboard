@@ -43,8 +43,10 @@ function VerifyPageContent() {
                 })
               }
 
-              const nextPath = searchParams.get('next') || '/reset-password'
-              router.replace(nextPath)
+              const rawNextPath = searchParams.get('next') || '/reset-password'
+              const nextUrl = new URL(rawNextPath, window.location.origin)
+              nextUrl.searchParams.set('mode', 'recovery')
+              router.replace(`${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`)
               return
             }
 
