@@ -8,6 +8,7 @@ import Link from 'next/link'
 function VerifyPageContent() {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [message, setMessage] = useState('')
+  const [isRecoveryFlow, setIsRecoveryFlow] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -22,7 +23,7 @@ function VerifyPageContent() {
         
         if (token_hash && type) {
           // Handle the email verification
-          const { error } = await supabase.auth.verifyOtp({
+          const { data, error } = await supabase.auth.verifyOtp({
             token_hash,
             type: type as any,
           })
@@ -32,6 +33,21 @@ function VerifyPageContent() {
             setStatus('error')
             setMessage('Email verification failed. The link may have expired or already been used.')
           } else {
+            if (type === 'recovery') {
+              setIsRecoveryFlow(true)
+
+              if (data.session) {
+                await supabase.auth.setSession({
+                  access_token: data.session.access_token,
+                  refresh_token: data.session.refresh_token,
+                })
+              }
+
+              const nextPath = searchParams.get('next') || '/reset-password'
+              router.replace(nextPath)
+              return
+            }
+
             setStatus('success')
             setMessage('Email verified successfully! You can now sign in to your account.')
           }
@@ -83,7 +99,7 @@ function VerifyPageContent() {
             </div>
 
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              {status === 'loading' && 'Verifying Email...'}
+              {status === 'loading' && (isRecoveryFlow ? 'Preparing Password Reset...' : 'Verifying Email...')}
               {status === 'success' && 'Email Verified!'}
               {status === 'error' && 'Verification Failed'}
             </h2>

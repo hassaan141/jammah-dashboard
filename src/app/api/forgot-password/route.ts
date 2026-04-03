@@ -19,10 +19,12 @@ export async function POST(request: NextRequest) {
     const { email } = validationResult.data
 
     const supabase = await createClient()
+    const appOrigin = process.env.NEXT_PUBLIC_APP_URL?.trim() || request.nextUrl.origin
+    const redirectTo = new URL('/reset-password?mode=recovery', appOrigin).toString()
 
     // Send password reset email
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3020'}/reset-password?mode=recovery`,
+      redirectTo,
     })
 
     if (error) {
